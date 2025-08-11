@@ -1,0 +1,197 @@
+{
+  "cluster_configuration": {
+    "name": "Databricks Cluster Configuration",
+    "description": "Standard cluster configuration for all environments",
+    "version": "1.0.0",
+    "last_updated": "2024-01-01",
+    
+    "base_configuration": {
+      "spark_version": "16.4.x-scala2.12",
+      "node_type_id": "Standard_DS3_v2",
+      "driver_node_type_id": "Standard_DS3_v2",
+      "num_workers": 0,
+      "autotermination_minutes": 10,
+      "enable_elastic_disk": true,
+      "runtime_engine": "PHOTON",
+      
+      "spark_conf": {
+        "spark.databricks.cluster.profile": "singleNode",
+        "spark.master": "local[*]",
+        "spark.databricks.delta.preview.enabled": "true",
+        "spark.databricks.delta.retentionDurationCheck.enabled": "false",
+        "spark.databricks.acl.dfAclsEnabled": "true",
+        "spark.databricks.repl.allowedLanguages": "python,sql,scala,r",
+        "spark.databricks.passthrough.enabled": "false",
+        "spark.databricks.pyspark.enableProcessIsolation": "true"
+      },
+      
+      "spark_env_vars": {
+        "PYSPARK_PYTHON": "/databricks/python3/bin/python3"
+      },
+      
+      "custom_tags": {
+        "ResourceClass": "SingleNode",
+        "ClusterType": "Interactive",
+        "Project": "nanba-selective-cicd"
+      },
+      
+      "init_scripts": [],
+      
+      "cluster_log_conf": {
+        "dbfs": {
+          "destination": "dbfs:/cluster-logs"
+        }
+      }
+    },
+    
+    "environment_overrides": {
+      "dev": {
+        "custom_tags": {
+          "Environment": "Development",
+          "CostCenter": "Engineering",
+          "AutoShutdown": "true"
+        },
+        "autotermination_minutes": 10,
+        "max_concurrent_runs": 3,
+        "enable_local_disk_encryption": false
+      },
+      
+      "test": {
+        "custom_tags": {
+          "Environment": "Testing",
+          "CostCenter": "QA",
+          "AutoShutdown": "true"
+        },
+        "autotermination_minutes": 10,
+        "max_concurrent_runs": 5,
+        "enable_local_disk_encryption": false
+      },
+      
+      "prod": {
+        "custom_tags": {
+          "Environment": "Production",
+          "CostCenter": "Operations",
+          "AutoShutdown": "false",
+          "Monitoring": "enabled"
+        },
+        "autotermination_minutes": 10,
+        "max_concurrent_runs": 10,
+        "enable_local_disk_encryption": true,
+        "spark_conf": {
+          "spark.databricks.cluster.profile": "singleNode",
+          "spark.master": "local[*]",
+          "spark.databricks.delta.preview.enabled": "true",
+          "spark.databricks.delta.retentionDurationCheck.enabled": "true",
+          "spark.databricks.acl.dfAclsEnabled": "true",
+          "spark.databricks.repl.allowedLanguages": "python,sql",
+          "spark.databricks.passthrough.enabled": "false",
+          "spark.databricks.pyspark.enableProcessIsolation": "true",
+          "spark.sql.adaptive.enabled": "true",
+          "spark.sql.adaptive.coalescePartitions.enabled": "true"
+        }
+      }
+    },
+    
+    "node_specifications": {
+      "Standard_DS3_v2": {
+        "memory_gb": 14,
+        "cores": 4,
+        "storage_gb": 28,
+        "category": "General Purpose",
+        "description": "Balanced compute, memory, and network resources",
+        "hourly_cost_estimate": "$0.30"
+      }
+    },
+    
+    "spark_versions": {
+      "16.4.x-scala2.12": {
+        "display_name": "16.4 LTS (Scala 2.12, Spark 3.5.3)",
+        "spark_version": "3.5.3",
+        "scala_version": "2.12",
+        "python_version": "3.11",
+        "release_date": "2024-12-01",
+        "long_term_support": true,
+        "photon_compatible": true,
+        "delta_version": "3.2.1",
+        "includes": [
+          "Apache Spark 3.5.3",
+          "Scala 2.12",
+          "Python 3.11",
+          "R 4.3",
+          "Delta Lake 3.2.1",
+          "MLflow 2.16",
+          "Photon acceleration"
+        ]
+      }
+    },
+    
+    "policies": {
+      "cluster_policies": {
+        "single_node_policy": {
+          "definition": {
+            "num_workers": {
+              "type": "fixed",
+              "value": 0
+            },
+            "node_type_id": {
+              "type": "allowlist",
+              "values": [
+                "Standard_DS3_v2",
+                "Standard_DS4_v2",
+                "Standard_DS5_v2"
+              ]
+            },
+            "spark_version": {
+              "type": "allowlist",
+              "values": [
+                "16.4.x-scala2.12",
+                "15.4.x-scala2.12"
+              ]
+            },
+            "autotermination_minutes": {
+              "type": "range",
+              "min_value": 10,
+              "max_value": 120,
+              "default_value": 10
+            },
+            "custom_tags.Environment": {
+              "type": "allowlist",
+              "values": ["dev", "test", "prod"]
+            }
+          }
+        }
+      }
+    },
+    
+    "cost_optimization": {
+      "recommendations": [
+        "Use Photon for better performance and cost efficiency",
+        "Enable auto-termination to reduce idle costs",
+        "Use spot instances for non-critical workloads",
+        "Monitor cluster utilization regularly"
+      ],
+      "auto_scaling": {
+        "enabled": false,
+        "min_workers": 0,
+        "max_workers": 0
+      },
+      "spot_instances": {
+        "enabled": false,
+        "max_spot_price_percent": 100,
+        "fallback_to_on_demand": true
+      }
+    },
+    
+    "monitoring": {
+      "metrics_enabled": true,
+      "log_delivery": true,
+      "ganglia_metrics": false,
+      "datadog_integration": false,
+      "alerts": {
+        "cluster_failure": true,
+        "long_running_cluster": true,
+        "high_cost_alert": true
+      }
+    }
+  }
+}

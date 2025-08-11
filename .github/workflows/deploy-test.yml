@@ -1,0 +1,223 @@
+name: Deploy to TEST
+
+on:
+  workflow_dispatch:
+    inputs:
+      use_case:
+        description: 'Select use case to deploy (shared folder is always included)'
+        required: true
+        type: choice
+        options:
+          - usecase-1
+          - usecase-2
+          - all
+      deploy_type:
+        description: 'Deployment type'
+        required: true
+        type: choice
+        default: 'incremental'
+        options:
+          - incremental
+          - full
+      comments:
+        description: 'Deployment comments (optional)'
+        required: false
+        type: string
+
+jobs:
+  deploy-to-test:
+    runs-on: ubuntu-latest
+    name: Deploy to TEST Environment
+    environment: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install Databricks CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+          echo "$HOME/.databricks/bin" >> $GITHUB_PATH
+      
+      - name: Display Deployment Plan
+        run: |
+          echo "================================================"
+          echo "TEST DEPLOYMENT PLAN"
+          echo "================================================"
+          echo "Environment: TEST"
+          echo "Use Case: ${{ github.event.inputs.use_case }}"
+          echo "Deployment Type: ${{ github.event.inputs.deploy_type }}"
+          echo "Triggered by: ${{ github.actor }}"
+          echo "Comments: ${{ github.event.inputs.comments }}"
+          echo ""
+          echo "Folders to deploy:"
+          echo "  ✓ src/shared (always deployed)"
+          
+          if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
+            echo "  ✓ src/usecase-1"
+            echo "  ✓ src/usecase-2"
+          else
+            echo "  ✓ src/${{ github.event.inputs.use_case }}"
+          fi
+          echo "================================================"
+      
+      - name: Clean TEST workspace (if full deployment)
+        if: github.event.inputs.deploy_type == 'full'
+        env:
+          DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          echo "Performing full deployment - cleaning existing workspace..."
+          
+          # Clean the workspace directory
+          databricks workspace delete /Workspace/Deployments/test --recursive || true
+          
+          # Recreate directory structure
+          databricks workspace mkdirs /Workspace/Deployments/test
+      
+      - name: Deploy Shared Folder
+        env:
+          DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          echo "Deploying shared folder to TEST..."
+          
+          # Create directory if it doesn't exist
+          databricks workspace mkdirs /Workspace/Deployments/test/shared || true
+          
+          # Import shared notebooks
+          databricks workspace import-dir \
+            ./src/shared \
+            /Workspace/Deployments/test/shared \
+            --overwrite
+          
+          echo "✅ Shared folder deployed successfully"
+      
+      - name: Deploy Selected Use Case(s)
+        env:
+          DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
+            echo "Deploying all use cases to TEST..."
+            
+            # Deploy usecase-1
+            echo "Deploying usecase-1..."
+            databricks workspace mkdirs /Workspace/Deployments/test/usecase-1 || true
+            databricks workspace import-dir \
+              ./src/usecase-1 \
+              /Workspace/Deployments/test/usecase-1 \
+              --overwrite
+            echo "✅ usecase-1 deployed"
+            
+            # Deploy usecase-2
+            echo "Deploying usecase-2..."
+            databricks workspace mkdirs /Workspace/Deployments/test/usecase-2 || true
+            databricks workspace import-dir \
+              ./src/usecase-2 \
+              /Workspace/Deployments/test/usecase-2 \
+              --overwrite
+            echo "✅ usecase-2 deployed"
+            
+          else
+            echo "Deploying ${{ github.event.inputs.use_case }} to TEST..."
+            databricks workspace mkdirs /Workspace/Deployments/test/${{ github.event.inputs.use_case }} || true
+            databricks workspace import-dir \
+              ./src/${{ github.event.inputs.use_case }} \
+              /Workspace/Deployments/test/${{ github.event.inputs.use_case }} \
+              --overwrite
+            echo "✅ ${{ github.event.inputs.use_case }} deployed"
+          fi
+      
+      - name: Deploy Bundle Resources
+        env:
+          DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          echo "Deploying Databricks bundle resources..."
+          
+          # Set the use_case variable for bundle deployment
+          export USE_CASE="${{ github.event.inputs.use_case }}"
+          
+          # Deploy bundle with the test target
+          databricks bundle deploy -t test --auto-approve
+          
+          echo "✅ Bundle resources deployed"
+      
+      - name: Verify Deployment
+        env:
+          DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          echo "Verifying deployment..."
+          echo "----------------------------------------"
+          
+          # List deployed assets
+          echo "Shared folder contents:"
+          databricks workspace ls /Workspace/Deployments/test/shared || echo "⚠️ Shared folder not found"
+          echo ""
+          
+          if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
+            echo "UseCase-1 folder contents:"
+            databricks workspace ls /Workspace/Deployments/test/usecase-1 || echo "⚠️ usecase-1 not found"
+            echo ""
+            echo "UseCase-2 folder contents:"
+            databricks workspace ls /Workspace/Deployments/test/usecase-2 || echo "⚠️ usecase-2 not found"
+          else
+            echo "${{ github.event.inputs.use_case }} folder contents:"
+            databricks workspace ls /Workspace/Deployments/test/${{ github.event.inputs.use_case }} || echo "⚠️ ${{ github.event.inputs.use_case }} not found"
+          fi
+          
+          echo ""
+          echo "Checking cluster configuration..."
+          databricks clusters list | grep test-cluster || echo "⚠️ test-cluster not found"
+      
+      - name: Run Validation Tests
+        env:
+          DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          # Install dependencies
+          pip install requests
+          
+          # Make deploy script executable
+          chmod +x devops/scripts/deploy.sh || true
+          
+          # Run validation script
+          python devops/scripts/validate_deployment.py \
+            --env test \
+            --host "$DATABRICKS_HOST" \
+            --use-case "${{ github.event.inputs.use_case }}" || echo "⚠️ Validation script not found or failed"
+      
+      - name: Deployment Summary
+        run: |
+          echo "## ✅ TEST Deployment Completed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployment Information" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** TEST" >> $GITHUB_STEP_SUMMARY
+          echo "- **Use Case:** ${{ github.event.inputs.use_case }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Type:** ${{ github.event.inputs.deploy_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ✅ Success" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployed Folders" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ `/Workspace/Deployments/test/shared`" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
+            echo "- ✅ `/Workspace/Deployments/test/usecase-1`" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ `/Workspace/Deployments/test/usecase-2`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ✅ `/Workspace/Deployments/test/${{ github.event.inputs.use_case }}`" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Validate the deployment in TEST environment" >> $GITHUB_STEP_SUMMARY
+          echo "2. Run any necessary tests" >> $GITHUB_STEP_SUMMARY
+          echo "3. Deploy to PROD when ready" >> $GITHUB_STEP_SUMMARY

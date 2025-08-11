@@ -1,0 +1,58 @@
+bundle:
+  name: nanba-selective-cicd
+
+variables:
+  use_case:
+    description: Which use case to deploy
+    default: all
+
+targets:
+  dev:
+    mode: production
+    workspace:
+      root_path: /Workspace/Deployments/dev
+    
+    sync:
+      paths:
+        - ./src/shared
+        - ./src/usecase-1
+        - ./src/usecase-2
+      exclude:
+        - "*.pyc"
+        - "__pycache__"
+        - ".DS_Store"
+        - "*.ipynb_checkpoints"
+
+  test:
+    mode: production
+    workspace:
+      root_path: /Workspace/Deployments/test
+    
+    sync:
+      paths:
+        - ./src/shared
+        # Additional paths added dynamically based on use_case variable
+      exclude:
+        - "*.pyc"
+        - "__pycache__"
+        - ".DS_Store"
+        - "*.ipynb_checkpoints"
+
+  prod:
+    mode: production
+    workspace:
+      root_path: /Workspace/Deployments/prod
+    
+    sync:
+      paths:
+        - ./src/shared
+        # Additional paths added dynamically based on use_case variable
+      exclude:
+        - "*.pyc"
+        - "__pycache__"
+        - ".DS_Store"
+        - "*.ipynb_checkpoints"
+    
+    permissions:
+      - level: CAN_VIEW
+        group_name: users
