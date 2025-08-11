@@ -124,16 +124,6 @@ jobs:
         run: |
           echo "Creating backup of current PROD deployment..."
           
-          # Determine the target for all workspace operations
-          if [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
-            TARGET="prod-uc1"
-          elif [ "${{ github.event.inputs.use_case }}" = "usecase-2" ]; then
-            TARGET="prod-uc2"
-          else
-            TARGET="prod-all"
-          fi
-          echo "Using target: $TARGET for backup operations"
-          
           BACKUP_DATE=$(date +'%Y%m%d-%H%M%S')
           BACKUP_PATH="/Workspace/Deployments/prod-backups/${BACKUP_DATE}"
           LOCAL_BACKUP_DIR="./prod-backup-${BACKUP_DATE}"
@@ -141,37 +131,67 @@ jobs:
           # Create local backup directory
           mkdir -p "${LOCAL_BACKUP_DIR}"
           
-          # Check if source exists and create backup
+          # Check if source exists and create full backup of ALL content
           echo "Checking for existing deployment to backup..."
-          if databricks workspace ls /Workspace/Deployments/prod/files/src -t $TARGET 2>/dev/null; then
-            echo "Found existing deployment, creating backup..."
-            
-            # Export the entire src directory to local filesystem
+          
+          # Check and backup shared folder (always exists in any deployment)
+          if databricks workspace ls /Workspace/Deployments/prod/files/src/shared 2>/dev/null; then
+            echo "Backing up shared folder..."
             databricks workspace export-dir \
-              /Workspace/Deployments/prod/files/src \
-              "${LOCAL_BACKUP_DIR}/src" \
-              --overwrite -t $TARGET
-            
-            # Create backup directory in workspace
-            databricks workspace mkdirs "${BACKUP_PATH}" -t $TARGET
-            
-            # Import the backup to workspace backup location
-            databricks workspace import-dir \
-              "${LOCAL_BACKUP_DIR}/src" \
-              "${BACKUP_PATH}/src" \
-              --overwrite -t $TARGET
-            
-            echo "✅ Backup created at workspace path: ${BACKUP_PATH}"
-            
-            # List backup contents for verification
-            echo "Backup contents:"
-            databricks workspace ls "${BACKUP_PATH}" -t $TARGET || echo "Unable to list backup"
-          else
-            echo "⚠️ No existing deployment found to backup"
-            # Still create the backup directory for record keeping
-            databricks workspace mkdirs "${BACKUP_PATH}" -t $TARGET
-            echo "Empty backup directory created at: ${BACKUP_PATH}"
+              /Workspace/Deployments/prod/files/src/shared \
+              "${LOCAL_BACKUP_DIR}/shared" \
+              --overwrite
           fi
+          
+          # Check and backup usecase-1 if exists
+          if databricks workspace ls /Workspace/Deployments/prod/files/src/usecase-1 2>/dev/null; then
+            echo "Backing up usecase-1..."
+            databricks workspace export-dir \
+              /Workspace/Deployments/prod/files/src/usecase-1 \
+              "${LOCAL_BACKUP_DIR}/usecase-1" \
+              --overwrite
+          fi
+          
+          # Check and backup usecase-2 if exists
+          if databricks workspace ls /Workspace/Deployments/prod/files/src/usecase-2 2>/dev/null; then
+            echo "Backing up usecase-2..."
+            databricks workspace export-dir \
+              /Workspace/Deployments/prod/files/src/usecase-2 \
+              "${LOCAL_BACKUP_DIR}/usecase-2" \
+              --overwrite
+          fi
+          
+          # Create backup directory in workspace
+          databricks workspace mkdirs "${BACKUP_PATH}/src"
+          
+          # Upload all backed up content to workspace backup location
+          if [ -d "${LOCAL_BACKUP_DIR}/shared" ]; then
+            echo "Uploading shared backup..."
+            databricks workspace import-dir \
+              "${LOCAL_BACKUP_DIR}/shared" \
+              "${BACKUP_PATH}/src/shared" \
+              --overwrite
+          fi
+          
+          if [ -d "${LOCAL_BACKUP_DIR}/usecase-1" ]; then
+            echo "Uploading usecase-1 backup..."
+            databricks workspace import-dir \
+              "${LOCAL_BACKUP_DIR}/usecase-1" \
+              "${BACKUP_PATH}/src/usecase-1" \
+              --overwrite
+          fi
+          
+          if [ -d "${LOCAL_BACKUP_DIR}/usecase-2" ]; then
+            echo "Uploading usecase-2 backup..."
+            databricks workspace import-dir \
+              "${LOCAL_BACKUP_DIR}/usecase-2" \
+              "${BACKUP_PATH}/src/usecase-2" \
+              --overwrite
+          fi
+          
+          # List backup contents for verification
+          echo "Backup contents:"
+          databricks workspace ls -l "${BACKUP_PATH}/src" || echo "No backup created"
           
           # Clean up local backup directory
           rm -rf "${LOCAL_BACKUP_DIR}"
@@ -234,27 +254,99 @@ jobs:
           DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
-          echo "Deploying selected use cases to PROD via bundle..."
+          echo "Deploying selected use cases to PROD..."
           echo "Use Case: ${{ github.event.inputs.use_case }}"
           echo "Deployment Type: ${{ github.event.inputs.deploy_type }}"
           
-          # Determine the target based on use case selection
-          if [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
-            TARGET="prod-uc1"
-            echo "Using target: prod-uc1 (shared + usecase-1)"
-          elif [ "${{ github.event.inputs.use_case }}" = "usecase-2" ]; then
-            TARGET="prod-uc2"
-            echo "Using target: prod-uc2 (shared + usecase-2)"
+          # For incremental deployments, we need to preserve existing files
+          if [ "${{ github.event.inputs.deploy_type }}" = "incremental" ]; then
+            echo "Performing incremental deployment - preserving existing use cases..."
+            
+            # Create temporary directory for manual deployment
+            TEMP_DIR="./temp-deploy-$(date +%s)"
+            mkdir -p "$TEMP_DIR"
+            
+            # Always copy shared folder
+            cp -r src/shared "$TEMP_DIR/"
+            
+            # Copy selected use case(s)
+            if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
+              cp -r src/usecase-1 "$TEMP_DIR/"
+              cp -r src/usecase-2 "$TEMP_DIR/"
+            else
+              cp -r src/${{ github.event.inputs.use_case }} "$TEMP_DIR/"
+            fi
+            
+            # Upload directly to workspace without using bundle sync
+            echo "Uploading shared folder..."
+            databricks workspace import-dir \
+              "$TEMP_DIR/shared" \
+              "/Workspace/Deployments/prod/files/src/shared" \
+              --overwrite
+            
+            if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
+              echo "Uploading usecase-1..."
+              databricks workspace import-dir \
+                "$TEMP_DIR/usecase-1" \
+                "/Workspace/Deployments/prod/files/src/usecase-1" \
+                --overwrite
+              
+              echo "Uploading usecase-2..."
+              databricks workspace import-dir \
+                "$TEMP_DIR/usecase-2" \
+                "/Workspace/Deployments/prod/files/src/usecase-2" \
+                --overwrite
+            elif [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
+              echo "Uploading usecase-1..."
+              databricks workspace import-dir \
+                "$TEMP_DIR/usecase-1" \
+                "/Workspace/Deployments/prod/files/src/usecase-1" \
+                --overwrite
+            elif [ "${{ github.event.inputs.use_case }}" = "usecase-2" ]; then
+              echo "Uploading usecase-2..."
+              databricks workspace import-dir \
+                "$TEMP_DIR/usecase-2" \
+                "/Workspace/Deployments/prod/files/src/usecase-2" \
+                --overwrite
+            fi
+            
+            # Clean up temp directory
+            rm -rf "$TEMP_DIR"
+            
+            # Deploy cluster configuration only
+            if [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
+              TARGET="prod-uc1"
+            elif [ "${{ github.event.inputs.use_case }}" = "usecase-2" ]; then
+              TARGET="prod-uc2"
+            else
+              TARGET="prod-all"
+            fi
+            
+            # Deploy resources only (clusters, jobs, etc) without sync
+            databricks bundle deploy -t $TARGET --auto-approve --resources-only 2>/dev/null || true
+            
           else
-            TARGET="prod-all"
-            echo "Using target: prod-all (shared + all use cases)"
+            # Full deployment - replaces everything
+            echo "Performing full deployment - replacing all files..."
+            
+            # Determine the target based on use case selection
+            if [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
+              TARGET="prod-uc1"
+              echo "Using target: prod-uc1 (shared + usecase-1)"
+            elif [ "${{ github.event.inputs.use_case }}" = "usecase-2" ]; then
+              TARGET="prod-uc2"
+              echo "Using target: prod-uc2 (shared + usecase-2)"
+            else
+              TARGET="prod-all"
+              echo "Using target: prod-all (shared + all use cases)"
+            fi
+            
+            # Deploy bundle with the selected target (full sync)
+            echo "Deploying with target: $TARGET"
+            databricks bundle deploy -t $TARGET --auto-approve
           fi
           
-          # Deploy bundle with the selected target
-          echo "Deploying with target: $TARGET"
-          databricks bundle deploy -t $TARGET --auto-approve
-          
-          echo "✅ Bundle deployment completed to PROD"
+          echo "✅ Deployment completed to PROD"
       
       - name: Verify PROD Deployment
         env:

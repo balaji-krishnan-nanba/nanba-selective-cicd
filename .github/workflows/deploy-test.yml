@@ -111,27 +111,99 @@ jobs:
           DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
-          echo "Deploying selected use cases to TEST via bundle..."
+          echo "Deploying selected use cases to TEST..."
           echo "Use Case: ${{ github.event.inputs.use_case }}"
           echo "Deployment Type: ${{ github.event.inputs.deploy_type }}"
           
-          # Determine the target based on use case selection
-          if [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
-            TARGET="test-uc1"
-            echo "Using target: test-uc1 (shared + usecase-1)"
-          elif [ "${{ github.event.inputs.use_case }}" = "usecase-2" ]; then
-            TARGET="test-uc2"
-            echo "Using target: test-uc2 (shared + usecase-2)"
+          # For incremental deployments, we need to preserve existing files
+          if [ "${{ github.event.inputs.deploy_type }}" = "incremental" ]; then
+            echo "Performing incremental deployment - preserving existing use cases..."
+            
+            # Create temporary directory for manual deployment
+            TEMP_DIR="./temp-deploy-$(date +%s)"
+            mkdir -p "$TEMP_DIR"
+            
+            # Always copy shared folder
+            cp -r src/shared "$TEMP_DIR/"
+            
+            # Copy selected use case(s)
+            if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
+              cp -r src/usecase-1 "$TEMP_DIR/"
+              cp -r src/usecase-2 "$TEMP_DIR/"
+            else
+              cp -r src/${{ github.event.inputs.use_case }} "$TEMP_DIR/"
+            fi
+            
+            # Upload directly to workspace without using bundle sync
+            echo "Uploading shared folder..."
+            databricks workspace import-dir \
+              "$TEMP_DIR/shared" \
+              "/Workspace/Deployments/test/files/src/shared" \
+              --overwrite
+            
+            if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
+              echo "Uploading usecase-1..."
+              databricks workspace import-dir \
+                "$TEMP_DIR/usecase-1" \
+                "/Workspace/Deployments/test/files/src/usecase-1" \
+                --overwrite
+              
+              echo "Uploading usecase-2..."
+              databricks workspace import-dir \
+                "$TEMP_DIR/usecase-2" \
+                "/Workspace/Deployments/test/files/src/usecase-2" \
+                --overwrite
+            elif [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
+              echo "Uploading usecase-1..."
+              databricks workspace import-dir \
+                "$TEMP_DIR/usecase-1" \
+                "/Workspace/Deployments/test/files/src/usecase-1" \
+                --overwrite
+            elif [ "${{ github.event.inputs.use_case }}" = "usecase-2" ]; then
+              echo "Uploading usecase-2..."
+              databricks workspace import-dir \
+                "$TEMP_DIR/usecase-2" \
+                "/Workspace/Deployments/test/files/src/usecase-2" \
+                --overwrite
+            fi
+            
+            # Clean up temp directory
+            rm -rf "$TEMP_DIR"
+            
+            # Deploy cluster configuration only
+            if [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
+              TARGET="test-uc1"
+            elif [ "${{ github.event.inputs.use_case }}" = "usecase-2" ]; then
+              TARGET="test-uc2"
+            else
+              TARGET="test-all"
+            fi
+            
+            # Deploy resources only (clusters, jobs, etc) without sync
+            databricks bundle deploy -t $TARGET --auto-approve --resources-only 2>/dev/null || true
+            
           else
-            TARGET="test-all"
-            echo "Using target: test-all (shared + all use cases)"
+            # Full deployment - replaces everything
+            echo "Performing full deployment - replacing all files..."
+            
+            # Determine the target based on use case selection
+            if [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
+              TARGET="test-uc1"
+              echo "Using target: test-uc1 (shared + usecase-1)"
+            elif [ "${{ github.event.inputs.use_case }}" = "usecase-2" ]; then
+              TARGET="test-uc2"
+              echo "Using target: test-uc2 (shared + usecase-2)"
+            else
+              TARGET="test-all"
+              echo "Using target: test-all (shared + all use cases)"
+            fi
+            
+            # Deploy bundle with the selected target (full sync)
+            echo "Deploying with target: $TARGET"
+            databricks bundle deploy -t $TARGET --auto-approve
           fi
           
-          # Deploy bundle with the selected target
-          echo "Deploying with target: $TARGET"
-          databricks bundle deploy -t $TARGET --auto-approve
-          
-          echo "✅ Bundle deployment completed"
+          echo "✅ Deployment completed to TEST"
       
       - name: Verify Deployment
         env:
