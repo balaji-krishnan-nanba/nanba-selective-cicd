@@ -97,6 +97,10 @@ jobs:
         with:
           python-version: '3.11'
       
+      - name: Install Python dependencies
+        run: |
+          pip install requests
+      
       - name: Install Databricks CLI
         run: |
           curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
@@ -115,31 +119,21 @@ jobs:
           # Create backup directory
           databricks workspace mkdirs "${BACKUP_PATH}" -t prod
           
-          # Export current deployment as backup (if exists)
-          echo "Backing up shared folder..."
-          databricks workspace export-dir \
-            /Workspace/Deployments/prod/shared \
-            "./backup-shared-${BACKUP_DATE}" \
-            --overwrite -t prod || echo "No existing shared folder to backup"
-          
-          if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
-            echo "Backing up all use cases..."
-            databricks workspace export-dir \
-              /Workspace/Deployments/prod/usecase-1 \
-              "./backup-usecase-1-${BACKUP_DATE}" \
-              --overwrite -t prod || echo "No existing usecase-1 folder to backup"
-            
-            databricks workspace export-dir \
-              /Workspace/Deployments/prod/usecase-2 \
-              "./backup-usecase-2-${BACKUP_DATE}" \
-              --overwrite -t prod || echo "No existing usecase-2 folder to backup"
+          # Export current deployment as backup (if exists) - bundle structure
+          echo "Backing up current deployment..."
+          # Determine the target for backup
+          if [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
+            TARGET="prod-uc1"
+          elif [ "${{ github.event.inputs.use_case }}" = "usecase-2" ]; then
+            TARGET="prod-uc2"
           else
-            echo "Backing up ${{ github.event.inputs.use_case }}..."
-            databricks workspace export-dir \
-              /Workspace/Deployments/prod/${{ github.event.inputs.use_case }} \
-              "./backup-${{ github.event.inputs.use_case }}-${BACKUP_DATE}" \
-              --overwrite -t prod || echo "No existing use case folder to backup"
+            TARGET="prod-all"
           fi
+          
+          databricks workspace export-dir \
+            /Workspace/Deployments/prod/files \
+            "./backup-prod-${BACKUP_DATE}" \
+            --overwrite -t $TARGET || echo "No existing deployment to backup"
           
           echo "Backup completed: ${BACKUP_PATH}"
           echo "backup_path=${BACKUP_PATH}" >> $GITHUB_ENV
@@ -179,80 +173,47 @@ jobs:
         run: |
           echo "Performing full deployment - cleaning existing workspace..."
           
+          # Determine the target based on use case selection
+          if [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
+            TARGET="prod-uc1"
+          elif [ "${{ github.event.inputs.use_case }}" = "usecase-2" ]; then
+            TARGET="prod-uc2"
+          else
+            TARGET="prod-all"
+          fi
+          
           # Clean the workspace directory
-          databricks workspace delete /Workspace/Deployments/prod --recursive -t prod || true
+          databricks workspace delete /Workspace/Deployments/prod --recursive -t $TARGET || true
           
           # Recreate directory structure
-          databricks workspace mkdirs /Workspace/Deployments/prod -t prod
+          databricks workspace mkdirs /Workspace/Deployments/prod -t $TARGET
       
-      - name: Deploy Shared Folder to PROD
+      - name: Deploy Bundle with Selected Use Cases
         env:
           DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
-          echo "Deploying shared folder to PRODUCTION..."
+          echo "Deploying selected use cases to PROD via bundle..."
+          echo "Use Case: ${{ github.event.inputs.use_case }}"
+          echo "Deployment Type: ${{ github.event.inputs.deploy_type }}"
           
-          # Create directory if it doesn't exist
-          databricks workspace mkdirs /Workspace/Deployments/prod/shared -t prod || true
-          
-          # Import shared notebooks
-          databricks workspace import-dir \
-            ./src/shared \
-            /Workspace/Deployments/prod/shared \
-            --overwrite -t prod
-          
-          echo "✅ Shared folder deployed to PROD successfully"
-      
-      - name: Deploy Selected Use Case(s) to PROD
-        env:
-          DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-        run: |
-          if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
-            echo "Deploying all use cases to PRODUCTION..."
-            
-            # Deploy usecase-1
-            echo "Deploying usecase-1..."
-            databricks workspace mkdirs /Workspace/Deployments/prod/usecase-1 -t prod || true
-            databricks workspace import-dir \
-              ./src/usecase-1 \
-              /Workspace/Deployments/prod/usecase-1 \
-              --overwrite -t prod
-            echo "✅ usecase-1 deployed"
-            
-            # Deploy usecase-2
-            echo "Deploying usecase-2..."
-            databricks workspace mkdirs /Workspace/Deployments/prod/usecase-2 -t prod || true
-            databricks workspace import-dir \
-              ./src/usecase-2 \
-              /Workspace/Deployments/prod/usecase-2 \
-              --overwrite -t prod
-            echo "✅ usecase-2 deployed"
-            
+          # Determine the target based on use case selection
+          if [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
+            TARGET="prod-uc1"
+            echo "Using target: prod-uc1 (shared + usecase-1)"
+          elif [ "${{ github.event.inputs.use_case }}" = "usecase-2" ]; then
+            TARGET="prod-uc2"
+            echo "Using target: prod-uc2 (shared + usecase-2)"
           else
-            echo "Deploying ${{ github.event.inputs.use_case }} to PRODUCTION..."
-            databricks workspace mkdirs /Workspace/Deployments/prod/${{ github.event.inputs.use_case }} -t prod || true
-            databricks workspace import-dir \
-              ./src/${{ github.event.inputs.use_case }} \
-              /Workspace/Deployments/prod/${{ github.event.inputs.use_case }} \
-              --overwrite -t prod
-            echo "✅ ${{ github.event.inputs.use_case }} deployed to PROD successfully"
+            TARGET="prod-all"
+            echo "Using target: prod-all (shared + all use cases)"
           fi
-      
-      - name: Deploy Bundle Resources
-        env:
-          DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-        run: |
-          echo "Deploying Databricks bundle resources to PROD..."
           
-          # Set the use_case variable for bundle deployment
-          export USE_CASE="${{ github.event.inputs.use_case }}"
+          # Deploy bundle with the selected target
+          echo "Deploying with target: $TARGET"
+          databricks bundle deploy -t $TARGET --auto-approve
           
-          # Deploy bundle with the prod target
-          databricks bundle deploy -t prod --auto-approve
-          
-          echo "✅ Bundle resources deployed to PROD"
+          echo "✅ Bundle deployment completed to PROD"
       
       - name: Verify PROD Deployment
         env:
@@ -262,20 +223,37 @@ jobs:
           echo "Verifying PROD deployment..."
           echo "----------------------------------------"
           
-          # List deployed assets
-          echo "Shared folder contents:"
-          databricks workspace ls /Workspace/Deployments/prod/shared -t prod || echo "⚠️ Shared folder not found"
+          # Determine the target for verification
+          if [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
+            TARGET="prod-uc1"
+          elif [ "${{ github.event.inputs.use_case }}" = "usecase-2" ]; then
+            TARGET="prod-uc2"
+          else
+            TARGET="prod-all"
+          fi
+          
+          # List deployed assets (bundle creates files/ subfolder)
+          echo "Bundle deployment structure:"
+          databricks workspace ls /Workspace/Deployments/prod -t $TARGET || echo "⚠️ Prod folder not found"
+          echo ""
+          
+          echo "Checking deployed notebooks:"
+          echo "Shared folder:"
+          databricks workspace ls /Workspace/Deployments/prod/files/src/shared -t $TARGET || echo "⚠️ Shared folder not found at expected location"
           echo ""
           
           if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
-            echo "UseCase-1 folder contents:"
-            databricks workspace ls /Workspace/Deployments/prod/usecase-1 -t prod || echo "⚠️ usecase-1 not found"
+            echo "UseCase-1:"
+            databricks workspace ls /Workspace/Deployments/prod/files/src/usecase-1 -t $TARGET || echo "⚠️ usecase-1 not found"
             echo ""
-            echo "UseCase-2 folder contents:"
-            databricks workspace ls /Workspace/Deployments/prod/usecase-2 -t prod || echo "⚠️ usecase-2 not found"
-          else
-            echo "${{ github.event.inputs.use_case }} folder contents:"
-            databricks workspace ls /Workspace/Deployments/prod/${{ github.event.inputs.use_case }} -t prod || echo "⚠️ ${{ github.event.inputs.use_case }} not found"
+            echo "UseCase-2:"
+            databricks workspace ls /Workspace/Deployments/prod/files/src/usecase-2 -t $TARGET || echo "⚠️ usecase-2 not found"
+          elif [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
+            echo "UseCase-1:"
+            databricks workspace ls /Workspace/Deployments/prod/files/src/usecase-1 -t $TARGET || echo "⚠️ usecase-1 not found"
+          elif [ "${{ github.event.inputs.use_case }}" = "usecase-2" ]; then
+            echo "UseCase-2:"
+            databricks workspace ls /Workspace/Deployments/prod/files/src/usecase-2 -t $TARGET || echo "⚠️ usecase-2 not found"
           fi
           echo ""
           
@@ -287,9 +265,6 @@ jobs:
           DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
-          # Install dependencies
-          pip install requests
-          
           # Run validation script
           python devops/scripts/validate_deployment.py \
             --env prod \
@@ -309,14 +284,17 @@ jobs:
           echo "- **Status:** ✅ Success" >> $GITHUB_STEP_SUMMARY
           echo "- **Deployed by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Deployed Folders" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ `/Workspace/Deployments/prod/shared`" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployed Structure" >> $GITHUB_STEP_SUMMARY
+          echo "Bundle deployment creates the following structure:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ `/Workspace/Deployments/prod/files/src/shared`" >> $GITHUB_STEP_SUMMARY
           
           if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
-            echo "- ✅ `/Workspace/Deployments/prod/usecase-1`" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ `/Workspace/Deployments/prod/usecase-2`" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- ✅ `/Workspace/Deployments/prod/${{ github.event.inputs.use_case }}`" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ `/Workspace/Deployments/prod/files/src/usecase-1`" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ `/Workspace/Deployments/prod/files/src/usecase-2`" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
+            echo "- ✅ `/Workspace/Deployments/prod/files/src/usecase-1`" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ github.event.inputs.use_case }}" = "usecase-2" ]; then
+            echo "- ✅ `/Workspace/Deployments/prod/files/src/usecase-2`" >> $GITHUB_STEP_SUMMARY
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Backup Location" >> $GITHUB_STEP_SUMMARY
