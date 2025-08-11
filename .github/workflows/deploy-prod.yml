@@ -93,14 +93,6 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
           echo "$HOME/.databricks/bin" >> $GITHUB_PATH
       
-      - name: Configure Databricks CLI
-        env:
-          DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-        run: |
-          # Configure Databricks CLI with environment variables
-          # No need for interactive configuration since we're using env vars directly
-      
       - name: Create deployment backup
         env:
           DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
