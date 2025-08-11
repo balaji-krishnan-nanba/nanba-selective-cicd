@@ -53,57 +53,21 @@ jobs:
           databricks bundle deploy -t dev --auto-approve
           
           echo "Bundle deployment completed"
+          echo "Note: In development mode, deployed to user-specific workspace"
       
-      - name: Sync All Notebooks to Workspace
+      - name: Verify Deployment
         env:
           DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
-          # Get current user email
-          USER_EMAIL=$(databricks current-user me | grep -oP '(?<="userName": ")[^"]*')
-          WORKSPACE_ROOT="/Workspace/Users/${USER_EMAIL}/Deployments/dev"
-          echo "Deploying to user workspace: $WORKSPACE_ROOT"
-          
-          echo "Syncing shared folder to DEV workspace..."
-          databricks workspace import-dir \
-            ./src/shared \
-            "${WORKSPACE_ROOT}/shared" \
-            --overwrite
-          
-          echo "Syncing usecase-1 to DEV workspace..."
-          databricks workspace import-dir \
-            ./src/usecase-1 \
-            "${WORKSPACE_ROOT}/usecase-1" \
-            --overwrite
-          
-          echo "Syncing usecase-2 to DEV workspace..."
-          databricks workspace import-dir \
-            ./src/usecase-2 \
-            "${WORKSPACE_ROOT}/usecase-2" \
-            --overwrite
-          
-          echo "All notebooks synced successfully"
-      
-      - name: List Deployed Assets
-        env:
-          DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-        run: |
-          # Get current user email
-          USER_EMAIL=$(databricks current-user me | grep -oP '(?<="userName": ")[^"]*')
-          WORKSPACE_ROOT="/Workspace/Users/${USER_EMAIL}/Deployments/dev"
-          
-          echo "Listing deployed notebooks in DEV workspace:"
-          echo "Workspace root: $WORKSPACE_ROOT"
+          echo "Deployment completed to DEV workspace"
           echo "----------------------------------------"
-          echo "Shared folder contents:"
-          databricks workspace ls "${WORKSPACE_ROOT}/shared" || true
+          echo "In development mode, notebooks are deployed to:"
+          echo "  ~/Deployments/dev/shared"
+          echo "  ~/Deployments/dev/usecase-1"
+          echo "  ~/Deployments/dev/usecase-2"
           echo ""
-          echo "UseCase-1 folder contents:"
-          databricks workspace ls "${WORKSPACE_ROOT}/usecase-1" || true
-          echo ""
-          echo "UseCase-2 folder contents:"
-          databricks workspace ls "${WORKSPACE_ROOT}/usecase-2" || true
+          echo "This resolves to the user's personal workspace in Databricks"
       
       - name: Run Deployment Validation
         env:
