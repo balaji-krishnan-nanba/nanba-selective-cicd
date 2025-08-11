@@ -43,7 +43,7 @@ jobs:
       
       - name: Install Python dependencies
         run: |
-          pip install pyyaml requests
+          pip install requests
       
       - name: Install Databricks CLI
         run: |
@@ -80,11 +80,20 @@ jobs:
         run: |
           echo "Performing full deployment - cleaning existing workspace..."
           
+          # Determine the target based on use case selection
+          if [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
+            TARGET="test-uc1"
+          elif [ "${{ github.event.inputs.use_case }}" = "usecase-2" ]; then
+            TARGET="test-uc2"
+          else
+            TARGET="test-all"
+          fi
+          
           # Clean the workspace directory
-          databricks workspace delete /Workspace/Deployments/test --recursive -t test || true
+          databricks workspace delete /Workspace/Deployments/test --recursive -t $TARGET || true
           
           # Recreate directory structure
-          databricks workspace mkdirs /Workspace/Deployments/test -t test
+          databricks workspace mkdirs /Workspace/Deployments/test -t $TARGET
       
       - name: Deploy Bundle with Selected Use Cases
         env:
@@ -95,52 +104,21 @@ jobs:
           echo "Use Case: ${{ github.event.inputs.use_case }}"
           echo "Deployment Type: ${{ github.event.inputs.deploy_type }}"
           
-          # Create temporary databricks.yml for selective deployment
-          cp databricks.yml databricks.yml.bak
-          
-          # Update sync paths based on selection
-          if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
-            echo "Deploying all use cases..."
-            # Keep default configuration which includes all
-          elif [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
-            echo "Configuring for usecase-1 only..."
-            # Update databricks.yml to only sync usecase-1
-            python -c "
-import yaml
-with open('databricks.yml', 'r') as f:
-    config = yaml.safe_load(f)
-config['targets']['test']['sync']['paths'] = ['./src/shared', './src/usecase-1']
-with open('databricks.yml', 'w') as f:
-    yaml.dump(config, f, default_flow_style=False)
-" || echo "Note: PyYAML not available, using sed"
-            
-            # Fallback to sed if python/yaml not available
-            if [ $? -ne 0 ]; then
-              sed -i.tmp '/sync:/,/exclude:/{/paths:/,/exclude:/{s/.*/      paths:\n        - .\/src\/shared\n        - .\/src\/usecase-1/;t;b};b}' databricks.yml
-            fi
+          # Determine the target based on use case selection
+          if [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
+            TARGET="test-uc1"
+            echo "Using target: test-uc1 (shared + usecase-1)"
           elif [ "${{ github.event.inputs.use_case }}" = "usecase-2" ]; then
-            echo "Configuring for usecase-2 only..."
-            # Update databricks.yml to only sync usecase-2
-            python -c "
-import yaml
-with open('databricks.yml', 'r') as f:
-    config = yaml.safe_load(f)
-config['targets']['test']['sync']['paths'] = ['./src/shared', './src/usecase-2']
-with open('databricks.yml', 'w') as f:
-    yaml.dump(config, f, default_flow_style=False)
-" || echo "Note: PyYAML not available, using sed"
-            
-            # Fallback to sed if python/yaml not available  
-            if [ $? -ne 0 ]; then
-              sed -i.tmp '/sync:/,/exclude:/{/paths:/,/exclude:/{s/.*/      paths:\n        - .\/src\/shared\n        - .\/src\/usecase-2/;t;b};b}' databricks.yml
-            fi
+            TARGET="test-uc2"
+            echo "Using target: test-uc2 (shared + usecase-2)"
+          else
+            TARGET="test-all"
+            echo "Using target: test-all (shared + all use cases)"
           fi
           
-          # Deploy bundle with the test target
-          databricks bundle deploy -t test --auto-approve
-          
-          # Restore original databricks.yml
-          mv databricks.yml.bak databricks.yml
+          # Deploy bundle with the selected target
+          echo "Deploying with target: $TARGET"
+          databricks bundle deploy -t $TARGET --auto-approve
           
           echo "✅ Bundle deployment completed"
       
@@ -152,28 +130,37 @@ with open('databricks.yml', 'w') as f:
           echo "Verifying deployment..."
           echo "----------------------------------------"
           
+          # Determine the target for verification
+          if [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
+            TARGET="test-uc1"
+          elif [ "${{ github.event.inputs.use_case }}" = "usecase-2" ]; then
+            TARGET="test-uc2"
+          else
+            TARGET="test-all"
+          fi
+          
           # List deployed assets (bundle creates files/ subfolder)
           echo "Bundle deployment structure:"
-          databricks workspace ls /Workspace/Deployments/test -t test || echo "⚠️ Test folder not found"
+          databricks workspace ls /Workspace/Deployments/test -t $TARGET || echo "⚠️ Test folder not found"
           echo ""
           
           echo "Checking deployed notebooks:"
           echo "Shared folder:"
-          databricks workspace ls /Workspace/Deployments/test/files/src/shared -t test || echo "⚠️ Shared folder not found at expected location"
+          databricks workspace ls /Workspace/Deployments/test/files/src/shared -t $TARGET || echo "⚠️ Shared folder not found at expected location"
           echo ""
           
           if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
             echo "UseCase-1:"
-            databricks workspace ls /Workspace/Deployments/test/files/src/usecase-1 -t test || echo "⚠️ usecase-1 not found"
+            databricks workspace ls /Workspace/Deployments/test/files/src/usecase-1 -t $TARGET || echo "⚠️ usecase-1 not found"
             echo ""
             echo "UseCase-2:"
-            databricks workspace ls /Workspace/Deployments/test/files/src/usecase-2 -t test || echo "⚠️ usecase-2 not found"
+            databricks workspace ls /Workspace/Deployments/test/files/src/usecase-2 -t $TARGET || echo "⚠️ usecase-2 not found"
           elif [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
             echo "UseCase-1:"
-            databricks workspace ls /Workspace/Deployments/test/files/src/usecase-1 -t test || echo "⚠️ usecase-1 not found"
+            databricks workspace ls /Workspace/Deployments/test/files/src/usecase-1 -t $TARGET || echo "⚠️ usecase-1 not found"
           elif [ "${{ github.event.inputs.use_case }}" = "usecase-2" ]; then
             echo "UseCase-2:"
-            databricks workspace ls /Workspace/Deployments/test/files/src/usecase-2 -t test || echo "⚠️ usecase-2 not found"
+            databricks workspace ls /Workspace/Deployments/test/files/src/usecase-2 -t $TARGET || echo "⚠️ usecase-2 not found"
           fi
           
           echo ""

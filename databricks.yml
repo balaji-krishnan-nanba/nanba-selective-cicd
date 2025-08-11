@@ -7,6 +7,7 @@ variables:
     default: all
 
 targets:
+  # Development target - deploys everything for PR validation
   dev:
     mode: production
     workspace:
@@ -23,7 +24,38 @@ targets:
         - ".DS_Store"
         - "*.ipynb_checkpoints"
 
-  test:
+  # TEST targets for selective deployment
+  test-uc1:
+    mode: production
+    workspace:
+      root_path: /Workspace/Deployments/test
+    
+    sync:
+      paths:
+        - ./src/shared
+        - ./src/usecase-1
+      exclude:
+        - "*.pyc"
+        - "__pycache__"
+        - ".DS_Store"
+        - "*.ipynb_checkpoints"
+
+  test-uc2:
+    mode: production
+    workspace:
+      root_path: /Workspace/Deployments/test
+    
+    sync:
+      paths:
+        - ./src/shared
+        - ./src/usecase-2
+      exclude:
+        - "*.pyc"
+        - "__pycache__"
+        - ".DS_Store"
+        - "*.ipynb_checkpoints"
+
+  test-all:
     mode: production
     workspace:
       root_path: /Workspace/Deployments/test
@@ -39,7 +71,46 @@ targets:
         - ".DS_Store"
         - "*.ipynb_checkpoints"
 
-  prod:
+  # PROD targets for selective deployment
+  prod-uc1:
+    mode: production
+    workspace:
+      root_path: /Workspace/Deployments/prod
+    
+    sync:
+      paths:
+        - ./src/shared
+        - ./src/usecase-1
+      exclude:
+        - "*.pyc"
+        - "__pycache__"
+        - ".DS_Store"
+        - "*.ipynb_checkpoints"
+    
+    permissions:
+      - level: CAN_VIEW
+        group_name: users
+
+  prod-uc2:
+    mode: production
+    workspace:
+      root_path: /Workspace/Deployments/prod
+    
+    sync:
+      paths:
+        - ./src/shared
+        - ./src/usecase-2
+      exclude:
+        - "*.pyc"
+        - "__pycache__"
+        - ".DS_Store"
+        - "*.ipynb_checkpoints"
+    
+    permissions:
+      - level: CAN_VIEW
+        group_name: users
+
+  prod-all:
     mode: production
     workspace:
       root_path: /Workspace/Deployments/prod
