@@ -113,7 +113,6 @@ jobs:
         env:
           DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-          DATABRICKS_BUNDLE_ROOT: ""  # Disable bundle config for workspace commands
         run: |
           echo "Creating backup of current PROD deployment..."
           
@@ -124,76 +123,67 @@ jobs:
           # Create local backup directory
           mkdir -p "${LOCAL_BACKUP_DIR}"
           
-          # Move to parent directory to avoid bundle config interference
-          cd ..
-          
           echo "Attempting to backup existing deployment..."
           
+          # Use --profile DEFAULT to bypass bundle configuration
           # Backup shared folder
           echo "Backing up shared folder..."
           databricks workspace export-dir \
             /Workspace/Deployments/prod/files/src/shared \
-            "${GITHUB_WORKSPACE}/${LOCAL_BACKUP_DIR}/shared" \
+            "${LOCAL_BACKUP_DIR}/shared" \
+            --profile DEFAULT \
             --overwrite 2>/dev/null || echo "No shared folder found to backup"
           
           # Backup usecase-1
           echo "Backing up usecase-1..."
           databricks workspace export-dir \
             /Workspace/Deployments/prod/files/src/usecase-1 \
-            "${GITHUB_WORKSPACE}/${LOCAL_BACKUP_DIR}/usecase-1" \
+            "${LOCAL_BACKUP_DIR}/usecase-1" \
+            --profile DEFAULT \
             --overwrite 2>/dev/null || echo "No usecase-1 found to backup"
           
           # Backup usecase-2
           echo "Backing up usecase-2..."
           databricks workspace export-dir \
             /Workspace/Deployments/prod/files/src/usecase-2 \
-            "${GITHUB_WORKSPACE}/${LOCAL_BACKUP_DIR}/usecase-2" \
+            "${LOCAL_BACKUP_DIR}/usecase-2" \
+            --profile DEFAULT \
             --overwrite 2>/dev/null || echo "No usecase-2 found to backup"
           
-          # Return to workspace directory
-          cd "${GITHUB_WORKSPACE}"
+          # Create backup directory in workspace
+          databricks workspace mkdirs "${BACKUP_PATH}/src" --profile DEFAULT || true
           
-          # Create backup directory in workspace (from outside bundle root)
-          cd ..
-          databricks workspace mkdirs "${BACKUP_PATH}/src" || true
-          cd "${GITHUB_WORKSPACE}"
-          
-          # Upload all backed up content to workspace backup location (from outside bundle root)
+          # Upload all backed up content to workspace backup location
           if [ -d "${LOCAL_BACKUP_DIR}/shared" ]; then
             echo "Uploading shared backup..."
-            cd ..
             databricks workspace import-dir \
-              "${GITHUB_WORKSPACE}/${LOCAL_BACKUP_DIR}/shared" \
+              "${LOCAL_BACKUP_DIR}/shared" \
               "${BACKUP_PATH}/src/shared" \
+              --profile DEFAULT \
               --overwrite || echo "Failed to upload shared backup"
-            cd "${GITHUB_WORKSPACE}"
           fi
           
           if [ -d "${LOCAL_BACKUP_DIR}/usecase-1" ]; then
             echo "Uploading usecase-1 backup..."
-            cd ..
             databricks workspace import-dir \
-              "${GITHUB_WORKSPACE}/${LOCAL_BACKUP_DIR}/usecase-1" \
+              "${LOCAL_BACKUP_DIR}/usecase-1" \
               "${BACKUP_PATH}/src/usecase-1" \
+              --profile DEFAULT \
               --overwrite || echo "Failed to upload usecase-1 backup"
-            cd "${GITHUB_WORKSPACE}"
           fi
           
           if [ -d "${LOCAL_BACKUP_DIR}/usecase-2" ]; then
             echo "Uploading usecase-2 backup..."
-            cd ..
             databricks workspace import-dir \
-              "${GITHUB_WORKSPACE}/${LOCAL_BACKUP_DIR}/usecase-2" \
+              "${LOCAL_BACKUP_DIR}/usecase-2" \
               "${BACKUP_PATH}/src/usecase-2" \
+              --profile DEFAULT \
               --overwrite || echo "Failed to upload usecase-2 backup"
-            cd "${GITHUB_WORKSPACE}"
           fi
           
-          # List backup contents for verification (from outside bundle root)
+          # List backup contents for verification
           echo "Backup contents:"
-          cd ..
-          databricks workspace ls -l "${BACKUP_PATH}/src" 2>/dev/null || echo "No backup created"
-          cd "${GITHUB_WORKSPACE}"
+          databricks workspace ls -l "${BACKUP_PATH}/src" --profile DEFAULT 2>/dev/null || echo "No backup created"
           
           # Clean up local backup directory
           rm -rf "${LOCAL_BACKUP_DIR}"
@@ -232,7 +222,6 @@ jobs:
         env:
           DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-          DATABRICKS_BUNDLE_ROOT: ""  # Disable bundle config for workspace commands
         run: |
           echo "Deploying selected use cases to PROD..."
           echo "Use Case: ${{ github.event.inputs.use_case }}"
@@ -254,51 +243,49 @@ jobs:
             cp -r src/${{ github.event.inputs.use_case }} "$TEMP_DIR/"
           fi
           
-          # Move to parent directory to avoid bundle config requiring target
-          cd ..
-          
           # Ensure deployment directories exist
-          databricks workspace mkdirs /Workspace/Deployments/prod/files/src || true
+          databricks workspace mkdirs /Workspace/Deployments/prod/files/src --profile DEFAULT || true
           
           # Upload shared folder
           echo "Uploading shared folder..."
           databricks workspace import-dir \
-            "${GITHUB_WORKSPACE}/$TEMP_DIR/shared" \
+            "$TEMP_DIR/shared" \
             "/Workspace/Deployments/prod/files/src/shared" \
+            --profile DEFAULT \
             --overwrite
           
           # Upload use cases based on selection
           if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
             echo "Uploading usecase-1..."
             databricks workspace import-dir \
-              "${GITHUB_WORKSPACE}/$TEMP_DIR/usecase-1" \
+              "$TEMP_DIR/usecase-1" \
               "/Workspace/Deployments/prod/files/src/usecase-1" \
+              --profile DEFAULT \
               --overwrite
             
             echo "Uploading usecase-2..."
             databricks workspace import-dir \
-              "${GITHUB_WORKSPACE}/$TEMP_DIR/usecase-2" \
+              "$TEMP_DIR/usecase-2" \
               "/Workspace/Deployments/prod/files/src/usecase-2" \
+              --profile DEFAULT \
               --overwrite
           elif [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
             echo "Uploading usecase-1..."
             databricks workspace import-dir \
-              "${GITHUB_WORKSPACE}/$TEMP_DIR/usecase-1" \
+              "$TEMP_DIR/usecase-1" \
               "/Workspace/Deployments/prod/files/src/usecase-1" \
+              --profile DEFAULT \
               --overwrite
           elif [ "${{ github.event.inputs.use_case }}" = "usecase-2" ]; then
             echo "Uploading usecase-2..."
             databricks workspace import-dir \
-              "${GITHUB_WORKSPACE}/$TEMP_DIR/usecase-2" \
+              "$TEMP_DIR/usecase-2" \
               "/Workspace/Deployments/prod/files/src/usecase-2" \
+              --profile DEFAULT \
               --overwrite
           fi
           
-          # Return to workspace directory
-          cd "${GITHUB_WORKSPACE}"
-          
-          # Clean up temp directory (ensure we're in the right directory)
-          cd "${GITHUB_WORKSPACE}"
+          # Clean up temp directory
           rm -rf "$TEMP_DIR"
           
           # Deploy cluster configuration
