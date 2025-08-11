@@ -204,15 +204,16 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Deployed Structure" >> $GITHUB_STEP_SUMMARY
           echo "Bundle deployment creates the following structure:" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ `/Workspace/Deployments/test/files/src/shared`" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ \`/Workspace/Deployments/test/files/src/shared\`" >> $GITHUB_STEP_SUMMARY
           
-          if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
-            echo "- ✅ `/Workspace/Deployments/test/files/src/usecase-1`" >> $GITHUB_STEP_SUMMARY
-            echo "- ✅ `/Workspace/Deployments/test/files/src/usecase-2`" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
-            echo "- ✅ `/Workspace/Deployments/test/files/src/usecase-1`" >> $GITHUB_STEP_SUMMARY
-          elif [ "${{ github.event.inputs.use_case }}" = "usecase-2" ]; then
-            echo "- ✅ `/Workspace/Deployments/test/files/src/usecase-2`" >> $GITHUB_STEP_SUMMARY
+          USE_CASE="${{ github.event.inputs.use_case }}"
+          if [ "$USE_CASE" = "all" ]; then
+            echo "- ✅ \`/Workspace/Deployments/test/files/src/usecase-1\`" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ \`/Workspace/Deployments/test/files/src/usecase-2\`" >> $GITHUB_STEP_SUMMARY
+          elif [ "$USE_CASE" = "usecase-1" ]; then
+            echo "- ✅ \`/Workspace/Deployments/test/files/src/usecase-1\`" >> $GITHUB_STEP_SUMMARY
+          elif [ "$USE_CASE" = "usecase-2" ]; then
+            echo "- ✅ \`/Workspace/Deployments/test/files/src/usecase-2\`" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY
