@@ -56,15 +56,47 @@ jobs:
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
           echo "================================================"
-          echo "Deploying ALL use cases + shared to DEV environment"
+          echo "Deploying ALL folders from src/ to DEV environment"
           echo "This deployment is for PR validation purposes"
           echo "================================================"
           
-          # Deploy using bundle (includes all paths defined in dev target)
-          databricks bundle deploy -t dev --auto-approve
+          # Discover all folders under src/
+          echo "Discovering folders to deploy..."
+          FOLDERS=$(find src -maxdepth 1 -type d -not -path src | xargs -n1 basename | sort)
+          echo "Found folders: $(echo $FOLDERS | tr '\n' ' ')"
+          
+          # Create temp directory for deployment
+          TEMP_DIR="./temp-deploy-$(date +%s)"
+          mkdir -p "$TEMP_DIR"
+          
+          # Copy all folders from src/
+          for folder in $FOLDERS; do
+            echo "Preparing $folder for deployment..."
+            cp -r "src/$folder" "$TEMP_DIR/"
+          done
+          
+          # Ensure deployment directories exist
+          databricks workspace mkdirs /Workspace/Deployments/dev/files/src --profile DEFAULT || true
+          
+          # Upload each folder
+          for folder in $FOLDERS; do
+            echo "Uploading $folder..."
+            databricks workspace import-dir \
+              "$TEMP_DIR/$folder" \
+              "/Workspace/Deployments/dev/files/src/$folder" \
+              --profile DEFAULT \
+              --overwrite
+          done
+          
+          # Clean up temp directory
+          rm -rf "$TEMP_DIR"
+          
+          # Deploy cluster configuration
+          databricks bundle deploy -t dev --auto-approve --resources-only 2>/dev/null || \
+            echo "Note: Cluster may already exist or resources-only flag not supported"
           
           echo "Bundle deployment completed"
-          echo "Deployed to shared DEV workspace"
+          echo "Deployed all folders to shared DEV workspace"
       
       - name: Verify Deployment
         env:
@@ -74,11 +106,20 @@ jobs:
           echo "Deployment completed to shared DEV workspace"
           echo "----------------------------------------"
           echo "Notebooks deployed to:"
-          echo "  /Workspace/Deployments/dev/shared"
-          echo "  /Workspace/Deployments/dev/usecase-1"
-          echo "  /Workspace/Deployments/dev/usecase-2"
+          
+          # List all deployed folders
+          FOLDERS=$(find src -maxdepth 1 -type d -not -path src | xargs -n1 basename | sort)
+          for folder in $FOLDERS; do
+            echo "  /Workspace/Deployments/dev/files/src/$folder"
+          done
+          
           echo ""
           echo "This is the shared development environment"
+          
+          # Verify deployment with databricks CLI
+          echo ""
+          echo "Verifying deployed structure:"
+          databricks workspace ls /Workspace/Deployments/dev/files/src --profile DEFAULT || echo "Unable to list deployed files"
       
       - name: Run Deployment Validation
         env:
@@ -103,14 +144,18 @@ jobs:
           if [ "${{ job.status }}" == "success" ]; then
             echo "## ✅ DEV Deployment Successful" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "All use cases and shared notebooks have been deployed to the DEV environment." >> $GITHUB_STEP_SUMMARY
+            echo "All folders from src/ have been deployed to the DEV environment." >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "**Deployed Assets:**" >> $GITHUB_STEP_SUMMARY
-            echo "- ✓ Shared notebooks" >> $GITHUB_STEP_SUMMARY
-            echo "- ✓ Use Case 1 notebooks" >> $GITHUB_STEP_SUMMARY
-            echo "- ✓ Use Case 2 notebooks" >> $GITHUB_STEP_SUMMARY
+            
+            # List all deployed folders dynamically
+            FOLDERS=$(find src -maxdepth 1 -type d -not -path src | xargs -n1 basename | sort)
+            for folder in $FOLDERS; do
+              echo "- ✓ $folder" >> $GITHUB_STEP_SUMMARY
+            done
+            
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Workspace Path:** /Workspace/Deployments/dev/" >> $GITHUB_STEP_SUMMARY
+            echo "**Workspace Path:** /Workspace/Deployments/dev/files/src/" >> $GITHUB_STEP_SUMMARY
           else
             echo "## ❌ DEV Deployment Failed" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY

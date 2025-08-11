@@ -30,9 +30,7 @@ targets:
     
     sync:
       paths:
-        - ./src/shared
-        - ./src/usecase-1
-        - ./src/usecase-2
+        - ./src  # Deploy entire src directory for dev
       exclude:
         - "*.pyc"
         - "__pycache__"

@@ -113,58 +113,65 @@ class DeploymentValidator:
         
         return notebooks
     
-    def validate_shared_folder(self) -> bool:
+    def validate_folder(self, folder_name: str) -> bool:
         """
-        Validate that shared folder is deployed
+        Validate that a folder is deployed
         
+        Args:
+            folder_name: Name of the folder to validate
+            
         Returns:
             True if validation passes
         """
-        print("\n📁 Validating shared folder deployment...")
+        print(f"\n📁 Validating {folder_name} folder deployment...")
         
-        shared_path = f"{self.base_path}/shared"
+        folder_path = f"{self.base_path}/{folder_name}"
         
-        # Check if shared folder exists
-        if not self.check_path_exists(shared_path):
+        # Check if folder exists
+        if not self.check_path_exists(folder_path):
             self.validation_results.append({
-                'component': 'shared',
+                'component': folder_name,
                 'status': 'FAILED',
-                'message': f'Shared folder not found at {shared_path}'
+                'message': f'{folder_name} folder not found at {folder_path}'
             })
-            print(f"  ❌ Shared folder not found at {shared_path}")
+            print(f"  ❌ {folder_name} folder not found at {folder_path}")
             return False
         
-        # List notebooks in shared folder
-        notebooks = self.list_notebooks(shared_path)
+        # List notebooks in folder
+        notebooks = self.list_notebooks(folder_path)
         
         if not notebooks:
             self.validation_results.append({
-                'component': 'shared',
+                'component': folder_name,
                 'status': 'WARNING',
-                'message': 'Shared folder exists but contains no notebooks'
+                'message': f'{folder_name} folder exists but contains no notebooks'
             })
-            print(f"  ⚠️  Shared folder exists but contains no notebooks")
+            print(f"  ⚠️  {folder_name} folder exists but contains no notebooks")
             return True
         
         self.validation_results.append({
-            'component': 'shared',
+            'component': folder_name,
             'status': 'PASSED',
-            'message': f'Found {len(notebooks)} notebooks in shared folder',
+            'message': f'Found {len(notebooks)} notebooks in {folder_name} folder',
             'notebooks': notebooks
         })
         
-        print(f"  ✅ Shared folder validated - {len(notebooks)} notebooks found")
+        print(f"  ✅ {folder_name} folder validated - {len(notebooks)} notebooks found")
         for notebook in notebooks:
             print(f"     - {notebook.split('/')[-1]}")
         
         return True
+    
+    def validate_shared_folder(self) -> bool:
+        """Legacy method for backward compatibility"""
+        return self.validate_folder('shared')
     
     def validate_use_case(self, use_case: str) -> bool:
         """
         Validate that a use case is deployed
         
         Args:
-            use_case: Use case name (usecase-1, usecase-2)
+            use_case: Use case/folder name
             
         Returns:
             True if validation passes
@@ -332,18 +339,43 @@ def main():
         if not validator.run_smoke_test():
             all_passed = False
     
-    # Always validate shared folder (even with smoke test)
-    if not validator.validate_shared_folder():
-        all_passed = False
-    
-    # Validate use cases
-    if args.validate_all or args.use_case == 'all':
+    # For validate-all, discover and validate all folders
+    if args.validate_all:
+        import os
+        src_path = os.path.join(os.getcwd(), 'src')
+        if os.path.exists(src_path):
+            folders = [f for f in os.listdir(src_path) if os.path.isdir(os.path.join(src_path, f))]
+            print(f"Found folders to validate: {folders}")
+            for folder in sorted(folders):
+                if not validator.validate_folder(folder):
+                    all_passed = False
+        else:
+            print("Warning: src directory not found locally, validating known folders")
+            # Fallback to known folders
+            if not validator.validate_folder('shared'):
+                all_passed = False
+            if not validator.validate_use_case('usecase-1'):
+                all_passed = False
+            if not validator.validate_use_case('usecase-2'):
+                all_passed = False
+    elif args.use_case == 'all':
+        # Validate all known folders
+        if not validator.validate_folder('shared'):
+            all_passed = False
         if not validator.validate_use_case('usecase-1'):
             all_passed = False
         if not validator.validate_use_case('usecase-2'):
             all_passed = False
     elif args.use_case:
+        # Always validate shared folder
+        if not validator.validate_folder('shared'):
+            all_passed = False
+        # Validate specific use case
         if not validator.validate_use_case(args.use_case):
+            all_passed = False
+    else:
+        # Default: validate shared folder at minimum
+        if not validator.validate_folder('shared'):
             all_passed = False
     
     # Validate cluster
