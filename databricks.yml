@@ -10,7 +10,7 @@ targets:
   dev:
     mode: development
     workspace:
-      root_path: /Workspace/Deployments/dev
+      root_path: ~/Deployments/dev
     
     sync:
       paths:

@@ -59,22 +59,27 @@ jobs:
           DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
+          # Get current user workspace path
+          USER_PATH=$(databricks me | grep -oP '(?<="userName": ")[^"]*')
+          WORKSPACE_ROOT="/Workspace/Users/${USER_PATH}/Deployments/dev"
+          echo "Deploying to user workspace: $WORKSPACE_ROOT"
+          
           echo "Syncing shared folder to DEV workspace..."
           databricks workspace import-dir \
             ./src/shared \
-            /Workspace/Deployments/dev/shared \
+            "${WORKSPACE_ROOT}/shared" \
             --overwrite
           
           echo "Syncing usecase-1 to DEV workspace..."
           databricks workspace import-dir \
             ./src/usecase-1 \
-            /Workspace/Deployments/dev/usecase-1 \
+            "${WORKSPACE_ROOT}/usecase-1" \
             --overwrite
           
           echo "Syncing usecase-2 to DEV workspace..."
           databricks workspace import-dir \
             ./src/usecase-2 \
-            /Workspace/Deployments/dev/usecase-2 \
+            "${WORKSPACE_ROOT}/usecase-2" \
             --overwrite
           
           echo "All notebooks synced successfully"
@@ -84,16 +89,21 @@ jobs:
           DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
+          # Get current user workspace path
+          USER_PATH=$(databricks me | grep -oP '(?<="userName": ")[^"]*')
+          WORKSPACE_ROOT="/Workspace/Users/${USER_PATH}/Deployments/dev"
+          
           echo "Listing deployed notebooks in DEV workspace:"
+          echo "Workspace root: $WORKSPACE_ROOT"
           echo "----------------------------------------"
           echo "Shared folder contents:"
-          databricks workspace ls /Workspace/Deployments/dev/shared || true
+          databricks workspace ls "${WORKSPACE_ROOT}/shared" || true
           echo ""
           echo "UseCase-1 folder contents:"
-          databricks workspace ls /Workspace/Deployments/dev/usecase-1 || true
+          databricks workspace ls "${WORKSPACE_ROOT}/usecase-1" || true
           echo ""
           echo "UseCase-2 folder contents:"
-          databricks workspace ls /Workspace/Deployments/dev/usecase-2 || true
+          databricks workspace ls "${WORKSPACE_ROOT}/usecase-2" || true
       
       - name: Run Deployment Validation
         env:

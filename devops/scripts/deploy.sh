@@ -62,9 +62,17 @@ validate_use_case() {
 # Function to deploy shared folder
 deploy_shared() {
     local env=$1
-    local workspace_path="/Workspace/Deployments/${env}/shared"
+    local workspace_path=""
     
-    print_message $GREEN "\n📁 Deploying shared folder to ${env}..."
+    # For dev environment, use user-specific path
+    if [ "$env" = "dev" ]; then
+        USER_PATH=$(databricks me | grep -oP '(?<="userName": ")[^"]*')
+        workspace_path="/Workspace/Users/${USER_PATH}/Deployments/${env}/shared"
+        print_message $GREEN "\n📁 Deploying shared folder to user workspace: ${USER_PATH}..."
+    else
+        workspace_path="/Workspace/Deployments/${env}/shared"
+        print_message $GREEN "\n📁 Deploying shared folder to ${env}..."
+    fi
     
     # Create workspace directory
     databricks workspace mkdirs "$workspace_path" || true
@@ -90,9 +98,17 @@ deploy_shared() {
 deploy_use_case() {
     local env=$1
     local use_case=$2
-    local workspace_path="/Workspace/Deployments/${env}/${use_case}"
+    local workspace_path=""
     
-    print_message $GREEN "\n📁 Deploying ${use_case} to ${env}..."
+    # For dev environment, use user-specific path
+    if [ "$env" = "dev" ]; then
+        USER_PATH=$(databricks me | grep -oP '(?<="userName": ")[^"]*')
+        workspace_path="/Workspace/Users/${USER_PATH}/Deployments/${env}/${use_case}"
+        print_message $GREEN "\n📁 Deploying ${use_case} to user workspace: ${USER_PATH}..."
+    else
+        workspace_path="/Workspace/Deployments/${env}/${use_case}"
+        print_message $GREEN "\n📁 Deploying ${use_case} to ${env}..."
+    fi
     
     # Create workspace directory
     databricks workspace mkdirs "$workspace_path" || true
@@ -129,26 +145,35 @@ deploy_all_use_cases() {
 verify_deployment() {
     local env=$1
     local use_case=$2
+    local workspace_root=""
     
     print_message $YELLOW "\n🔍 Verifying deployment..."
     
+    # For dev environment, use user-specific path
+    if [ "$env" = "dev" ]; then
+        USER_PATH=$(databricks me | grep -oP '(?<="userName": ")[^"]*')
+        workspace_root="/Workspace/Users/${USER_PATH}/Deployments/${env}"
+    else
+        workspace_root="/Workspace/Deployments/${env}"
+    fi
+    
     # Check shared folder
     print_message $YELLOW "Checking shared folder:"
-    databricks workspace ls "/Workspace/Deployments/${env}/shared" 2>/dev/null || \
+    databricks workspace ls "${workspace_root}/shared" 2>/dev/null || \
         print_message $RED "Shared folder not found or empty"
     
     # Check use case folders
     if [ "$use_case" = "all" ]; then
         print_message $YELLOW "Checking usecase-1:"
-        databricks workspace ls "/Workspace/Deployments/${env}/usecase-1" 2>/dev/null || \
+        databricks workspace ls "${workspace_root}/usecase-1" 2>/dev/null || \
             print_message $RED "usecase-1 not found or empty"
         
         print_message $YELLOW "Checking usecase-2:"
-        databricks workspace ls "/Workspace/Deployments/${env}/usecase-2" 2>/dev/null || \
+        databricks workspace ls "${workspace_root}/usecase-2" 2>/dev/null || \
             print_message $RED "usecase-2 not found or empty"
     else
         print_message $YELLOW "Checking ${use_case}:"
-        databricks workspace ls "/Workspace/Deployments/${env}/${use_case}" 2>/dev/null || \
+        databricks workspace ls "${workspace_root}/${use_case}" 2>/dev/null || \
             print_message $RED "${use_case} not found or empty"
     fi
 }
@@ -198,7 +223,15 @@ main() {
     print_message $GREEN "\n=========================================="
     print_message $GREEN "✅ Deployment completed successfully!"
     print_message $GREEN "=========================================="
-    print_message $YELLOW "Workspace root: /Workspace/Deployments/${env}/"
+    
+    # Show correct workspace path based on environment
+    if [ "$env" = "dev" ]; then
+        USER_PATH=$(databricks me | grep -oP '(?<="userName": ")[^"]*')
+        print_message $YELLOW "Workspace root: /Workspace/Users/${USER_PATH}/Deployments/${env}/"
+    else
+        print_message $YELLOW "Workspace root: /Workspace/Deployments/${env}/"
+    fi
+    
     print_message $YELLOW "Deployed components:"
     print_message $YELLOW "  - shared folder (always deployed)"
     
