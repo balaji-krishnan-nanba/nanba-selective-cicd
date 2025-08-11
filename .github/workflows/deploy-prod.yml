@@ -123,38 +123,35 @@ jobs:
           # Create local backup directory
           mkdir -p "${LOCAL_BACKUP_DIR}"
           
-          # Check if source exists and create full backup of ALL content
-          echo "Checking for existing deployment to backup..."
+          # Try to backup all folders - if they don't exist, the commands will fail gracefully
+          echo "Attempting to backup existing deployment..."
           
-          # Check and backup shared folder (always exists in any deployment)
-          if databricks workspace ls /Workspace/Deployments/prod/files/src/shared 2>/dev/null; then
-            echo "Backing up shared folder..."
-            databricks workspace export-dir \
-              /Workspace/Deployments/prod/files/src/shared \
-              "${LOCAL_BACKUP_DIR}/shared" \
-              --overwrite
-          fi
+          # Use DATABRICKS_CONFIG_PROFILE to avoid bundle config interference
+          export DATABRICKS_CONFIG_PROFILE=DEFAULT
           
-          # Check and backup usecase-1 if exists
-          if databricks workspace ls /Workspace/Deployments/prod/files/src/usecase-1 2>/dev/null; then
-            echo "Backing up usecase-1..."
-            databricks workspace export-dir \
-              /Workspace/Deployments/prod/files/src/usecase-1 \
-              "${LOCAL_BACKUP_DIR}/usecase-1" \
-              --overwrite
-          fi
+          # Backup shared folder
+          echo "Backing up shared folder..."
+          databricks workspace export-dir \
+            /Workspace/Deployments/prod/files/src/shared \
+            "${LOCAL_BACKUP_DIR}/shared" \
+            --overwrite 2>/dev/null || echo "No shared folder found to backup"
           
-          # Check and backup usecase-2 if exists
-          if databricks workspace ls /Workspace/Deployments/prod/files/src/usecase-2 2>/dev/null; then
-            echo "Backing up usecase-2..."
-            databricks workspace export-dir \
-              /Workspace/Deployments/prod/files/src/usecase-2 \
-              "${LOCAL_BACKUP_DIR}/usecase-2" \
-              --overwrite
-          fi
+          # Backup usecase-1
+          echo "Backing up usecase-1..."
+          databricks workspace export-dir \
+            /Workspace/Deployments/prod/files/src/usecase-1 \
+            "${LOCAL_BACKUP_DIR}/usecase-1" \
+            --overwrite 2>/dev/null || echo "No usecase-1 found to backup"
+          
+          # Backup usecase-2
+          echo "Backing up usecase-2..."
+          databricks workspace export-dir \
+            /Workspace/Deployments/prod/files/src/usecase-2 \
+            "${LOCAL_BACKUP_DIR}/usecase-2" \
+            --overwrite 2>/dev/null || echo "No usecase-2 found to backup"
           
           # Create backup directory in workspace
-          databricks workspace mkdirs "${BACKUP_PATH}/src"
+          databricks workspace mkdirs "${BACKUP_PATH}/src" || true
           
           # Upload all backed up content to workspace backup location
           if [ -d "${LOCAL_BACKUP_DIR}/shared" ]; then
@@ -162,7 +159,7 @@ jobs:
             databricks workspace import-dir \
               "${LOCAL_BACKUP_DIR}/shared" \
               "${BACKUP_PATH}/src/shared" \
-              --overwrite
+              --overwrite || echo "Failed to upload shared backup"
           fi
           
           if [ -d "${LOCAL_BACKUP_DIR}/usecase-1" ]; then
@@ -170,7 +167,7 @@ jobs:
             databricks workspace import-dir \
               "${LOCAL_BACKUP_DIR}/usecase-1" \
               "${BACKUP_PATH}/src/usecase-1" \
-              --overwrite
+              --overwrite || echo "Failed to upload usecase-1 backup"
           fi
           
           if [ -d "${LOCAL_BACKUP_DIR}/usecase-2" ]; then
@@ -178,12 +175,12 @@ jobs:
             databricks workspace import-dir \
               "${LOCAL_BACKUP_DIR}/usecase-2" \
               "${BACKUP_PATH}/src/usecase-2" \
-              --overwrite
+              --overwrite || echo "Failed to upload usecase-2 backup"
           fi
           
           # List backup contents for verification
           echo "Backup contents:"
-          databricks workspace ls -l "${BACKUP_PATH}/src" || echo "No backup created"
+          databricks workspace ls -l "${BACKUP_PATH}/src" 2>/dev/null || echo "No backup created"
           
           # Clean up local backup directory
           rm -rf "${LOCAL_BACKUP_DIR}"
