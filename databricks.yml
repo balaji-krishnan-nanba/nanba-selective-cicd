@@ -6,47 +6,6 @@ variables:
     description: Which use case to deploy
     default: all
 
-resources:
-  clusters:
-    dev-cluster:
-      cluster_name: dev-cluster
-      spark_version: "14.3.x-scala2.12"
-      node_type_id: "Standard_DS3_v2"
-      num_workers: 0
-      autotermination_minutes: 10
-      spark_conf:
-        "spark.databricks.cluster.profile": "singleNode"
-        "spark.master": "local[*]"
-      custom_tags:
-        Environment: "Development"
-        Project: "nanba-selective-cicd"
-    
-    test-cluster:
-      cluster_name: test-cluster
-      spark_version: "14.3.x-scala2.12"
-      node_type_id: "Standard_DS3_v2"
-      num_workers: 0
-      autotermination_minutes: 10
-      spark_conf:
-        "spark.databricks.cluster.profile": "singleNode"
-        "spark.master": "local[*]"
-      custom_tags:
-        Environment: "Testing"
-        Project: "nanba-selective-cicd"
-    
-    prod-cluster:
-      cluster_name: prod-cluster
-      spark_version: "14.3.x-scala2.12"
-      node_type_id: "Standard_DS3_v2"
-      num_workers: 0
-      autotermination_minutes: 10
-      spark_conf:
-        "spark.databricks.cluster.profile": "singleNode"
-        "spark.master": "local[*]"
-      custom_tags:
-        Environment: "Production"
-        Project: "nanba-selective-cicd"
-
 targets:
   # Development target - deploys everything for PR validation
   dev:
@@ -58,6 +17,16 @@ targets:
       clusters:
         dev-cluster:
           cluster_name: dev-cluster
+          spark_version: "14.3.x-scala2.12"
+          node_type_id: "Standard_DS3_v2"
+          num_workers: 0
+          autotermination_minutes: 10
+          spark_conf:
+            "spark.databricks.cluster.profile": "singleNode"
+            "spark.master": "local[*]"
+          custom_tags:
+            Environment: "Development"
+            Project: "nanba-selective-cicd"
     
     sync:
       paths:
@@ -80,6 +49,16 @@ targets:
       clusters:
         test-cluster:
           cluster_name: test-cluster
+          spark_version: "14.3.x-scala2.12"
+          node_type_id: "Standard_DS3_v2"
+          num_workers: 0
+          autotermination_minutes: 10
+          spark_conf:
+            "spark.databricks.cluster.profile": "singleNode"
+            "spark.master": "local[*]"
+          custom_tags:
+            Environment: "Testing"
+            Project: "nanba-selective-cicd"
     
     sync:
       paths:
@@ -100,6 +79,16 @@ targets:
       clusters:
         test-cluster:
           cluster_name: test-cluster
+          spark_version: "14.3.x-scala2.12"
+          node_type_id: "Standard_DS3_v2"
+          num_workers: 0
+          autotermination_minutes: 10
+          spark_conf:
+            "spark.databricks.cluster.profile": "singleNode"
+            "spark.master": "local[*]"
+          custom_tags:
+            Environment: "Testing"
+            Project: "nanba-selective-cicd"
     
     sync:
       paths:
@@ -120,6 +109,16 @@ targets:
       clusters:
         test-cluster:
           cluster_name: test-cluster
+          spark_version: "14.3.x-scala2.12"
+          node_type_id: "Standard_DS3_v2"
+          num_workers: 0
+          autotermination_minutes: 10
+          spark_conf:
+            "spark.databricks.cluster.profile": "singleNode"
+            "spark.master": "local[*]"
+          custom_tags:
+            Environment: "Testing"
+            Project: "nanba-selective-cicd"
     
     sync:
       paths:
@@ -142,6 +141,16 @@ targets:
       clusters:
         prod-cluster:
           cluster_name: prod-cluster
+          spark_version: "14.3.x-scala2.12"
+          node_type_id: "Standard_DS3_v2"
+          num_workers: 0
+          autotermination_minutes: 10
+          spark_conf:
+            "spark.databricks.cluster.profile": "singleNode"
+            "spark.master": "local[*]"
+          custom_tags:
+            Environment: "Production"
+            Project: "nanba-selective-cicd"
     
     sync:
       paths:
@@ -166,6 +175,16 @@ targets:
       clusters:
         prod-cluster:
           cluster_name: prod-cluster
+          spark_version: "14.3.x-scala2.12"
+          node_type_id: "Standard_DS3_v2"
+          num_workers: 0
+          autotermination_minutes: 10
+          spark_conf:
+            "spark.databricks.cluster.profile": "singleNode"
+            "spark.master": "local[*]"
+          custom_tags:
+            Environment: "Production"
+            Project: "nanba-selective-cicd"
     
     sync:
       paths:
@@ -190,6 +209,16 @@ targets:
       clusters:
         prod-cluster:
           cluster_name: prod-cluster
+          spark_version: "14.3.x-scala2.12"
+          node_type_id: "Standard_DS3_v2"
+          num_workers: 0
+          autotermination_minutes: 10
+          spark_conf:
+            "spark.databricks.cluster.profile": "singleNode"
+            "spark.master": "local[*]"
+          custom_tags:
+            Environment: "Production"
+            Project: "nanba-selective-cicd"
     
     sync:
       paths:
