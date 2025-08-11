@@ -84,9 +84,7 @@ jobs:
     if: needs.pre-deployment-checks.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     name: Deploy to PROD Environment
-    environment: 
-      name: production
-      url: https://databricks-prod.example.com
+    environment: production
     
     steps:
       - name: Checkout code
@@ -140,14 +138,20 @@ jobs:
           BACKUP_PATH="/Workspace/Deployments/prod-backups/${BACKUP_DATE}"
           
           # Create backup directory using the correct target
-          databricks workspace mkdirs "${BACKUP_PATH}" -t $TARGET
+          databricks workspace mkdirs "${BACKUP_PATH}" -t $TARGET || true
           
           # Export current deployment as backup (if exists) - bundle structure
           echo "Backing up current deployment..."
-          databricks workspace export-dir \
-            /Workspace/Deployments/prod/files \
-            "./backup-prod-${BACKUP_DATE}" \
-            --overwrite -t $TARGET || echo "No existing deployment to backup"
+          # Check if source exists before backing up
+          if databricks workspace ls /Workspace/Deployments/prod/files -t $TARGET 2>/dev/null; then
+            databricks workspace export-dir \
+              /Workspace/Deployments/prod/files \
+              "${BACKUP_PATH}" \
+              --overwrite -t $TARGET
+            echo "✅ Backup created at workspace path: ${BACKUP_PATH}"
+          else
+            echo "⚠️ No existing deployment found to backup"
+          fi
           
           echo "Backup completed: ${BACKUP_PATH}"
           echo "backup_path=${BACKUP_PATH}" >> $GITHUB_ENV
