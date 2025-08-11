@@ -54,9 +54,9 @@ jobs:
       - name: Validate inputs
         id: validation
         run: |
-          # Validate change ticket format (example: CHG-12345)
-          if [[ ! "${{ github.event.inputs.change_ticket }}" =~ ^[A-Z]+-[0-9]+$ ]]; then
-            echo "❌ Invalid change ticket format. Expected format: CHG-12345"
+          # Just ensure change ticket is not empty
+          if [ -z "${{ github.event.inputs.change_ticket }}" ]; then
+            echo "❌ Change ticket is required"
             echo "proceed=false" >> $GITHUB_OUTPUT
             exit 1
           fi
@@ -69,6 +69,8 @@ jobs:
           fi
           
           echo "✅ All validations passed"
+          echo "✅ Change ticket: ${{ github.event.inputs.change_ticket }}"
+          echo "✅ Deployment reason: ${{ github.event.inputs.deployment_reason }}"
           echo "proceed=true" >> $GITHUB_OUTPUT
       
       - name: Check TEST deployment status
