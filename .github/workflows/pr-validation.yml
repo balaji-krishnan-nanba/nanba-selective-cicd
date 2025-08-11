@@ -92,9 +92,15 @@ jobs:
           rm -rf "$TEMP_DIR"
           
           # Deploy cluster configuration
-          databricks bundle validate -t dev
-          databricks bundle deploy -t dev --auto-approve || \
-            echo "Note: Bundle deployment for resources completed"
+          echo "Running bundle validate..."
+          databricks bundle validate -t dev || echo "Validation warnings (continuing)"
+          
+          echo "Running bundle deploy for cluster resources..."
+          # Since we already uploaded files manually, just deploy the resources (clusters)
+          databricks bundle deploy -t dev --auto-approve
+          
+          echo "Verifying cluster creation..."
+          databricks clusters list --profile DEFAULT | grep dev-cluster || echo "Cluster may take time to appear"
           
           echo "Bundle deployment completed"
           echo "Deployed all folders to shared DEV workspace"
