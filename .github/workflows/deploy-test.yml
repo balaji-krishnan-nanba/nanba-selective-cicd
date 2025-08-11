@@ -47,8 +47,19 @@ jobs:
       
       - name: Install Databricks CLI
         run: |
+          echo "Installing Databricks CLI..."
+          
+          # Try the official installer
           curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
-          echo "$HOME/.databricks/bin" >> $GITHUB_PATH
+          
+          # The installer puts the CLI in /usr/local/bin/databricks
+          # Verify installation
+          if databricks --version; then
+            echo "✅ Databricks CLI installation verified"
+          else
+            echo "❌ Databricks CLI installation failed"
+            exit 1
+          fi
       
       - name: Display Deployment Plan
         run: |
@@ -116,30 +127,11 @@ jobs:
             echo "Using target: test-all (shared + all use cases)"
           fi
           
-          # Deploy bundle with the selected target (with retry logic)
+          # Deploy bundle with the selected target
           echo "Deploying with target: $TARGET"
+          databricks bundle deploy -t $TARGET --auto-approve
           
-          # Retry up to 3 times for transient failures
-          MAX_ATTEMPTS=3
-          ATTEMPT=1
-          
-          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-            echo "Deployment attempt $ATTEMPT of $MAX_ATTEMPTS..."
-            
-            if databricks bundle deploy -t $TARGET --auto-approve; then
-              echo "✅ Bundle deployment completed successfully"
-              break
-            else
-              if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-                echo "❌ Deployment failed after $MAX_ATTEMPTS attempts"
-                exit 1
-              fi
-              echo "⚠️ Deployment attempt $ATTEMPT failed, retrying in 30 seconds..."
-              sleep 30
-            fi
-            
-            ATTEMPT=$((ATTEMPT + 1))
-          done
+          echo "✅ Bundle deployment completed"
       
       - name: Verify Deployment
         env:
