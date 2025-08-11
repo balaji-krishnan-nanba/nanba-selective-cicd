@@ -1,0 +1,130 @@
+{
+  "environments": {
+    "dev": {
+      "name": "Development",
+      "workspace_host": "${DATABRICKS_HOST_DEV}",
+      "workspace_path": "/Workspace/Deployments/dev",
+      "cluster_name": "dev-cluster",
+      "auto_deploy": true,
+      "deploy_trigger": "pull_request",
+      "deployment_strategy": "all_usecases",
+      "environment_variables": {
+        "LOG_LEVEL": "DEBUG",
+        "ENABLE_PROFILING": "true"
+      },
+      "tags": {
+        "Environment": "dev",
+        "ManagedBy": "GitHub-Actions",
+        "CostCenter": "Engineering"
+      }
+    },
+    "test": {
+      "name": "Testing",
+      "workspace_host": "${DATABRICKS_HOST_TEST}",
+      "workspace_path": "/Workspace/Deployments/test",
+      "cluster_name": "test-cluster",
+      "auto_deploy": false,
+      "deploy_trigger": "manual",
+      "deployment_strategy": "selective",
+      "requires_approval": false,
+      "environment_variables": {
+        "LOG_LEVEL": "INFO",
+        "ENABLE_PROFILING": "true"
+      },
+      "tags": {
+        "Environment": "test",
+        "ManagedBy": "GitHub-Actions",
+        "CostCenter": "QA"
+      },
+      "validation": {
+        "run_integration_tests": true,
+        "test_timeout_minutes": 30
+      }
+    },
+    "prod": {
+      "name": "Production",
+      "workspace_host": "${DATABRICKS_HOST_PROD}",
+      "workspace_path": "/Workspace/Deployments/prod",
+      "cluster_name": "prod-cluster",
+      "auto_deploy": false,
+      "deploy_trigger": "manual",
+      "deployment_strategy": "selective",
+      "requires_approval": true,
+      "requires_change_ticket": true,
+      "backup_enabled": true,
+      "backup_retention_days": 30,
+      "environment_variables": {
+        "LOG_LEVEL": "WARNING",
+        "ENABLE_PROFILING": "false"
+      },
+      "tags": {
+        "Environment": "prod",
+        "ManagedBy": "GitHub-Actions",
+        "CostCenter": "Operations",
+        "Compliance": "Required"
+      },
+      "validation": {
+        "run_smoke_tests": true,
+        "monitor_deployment": true,
+        "alert_on_failure": true
+      },
+      "notifications": {
+        "email_list": ["devops@company.com", "platform@company.com"]
+      }
+    }
+  },
+  "global_settings": {
+    "databricks_cli_version": "0.212.0",
+    "python_version": "3.11",
+    "deployment_timeout_minutes": 15,
+    "retry_attempts": 2,
+    "retry_delay_seconds": 30,
+    "workspace_organization": {
+      "base_path": "/Workspace/Deployments",
+      "folder_structure": [
+        "{environment}/shared",
+        "{environment}/usecase-1",
+        "{environment}/usecase-2"
+      ]
+    },
+    "use_cases": [
+      {
+        "name": "usecase-1",
+        "display_name": "Use Case 1",
+        "description": "First use case implementation",
+        "source_path": "src/usecase-1",
+        "dependencies": ["shared"]
+      },
+      {
+        "name": "usecase-2",
+        "display_name": "Use Case 2",
+        "description": "Second use case implementation",
+        "source_path": "src/usecase-2",
+        "dependencies": ["shared"]
+      }
+    ],
+    "shared_components": {
+      "name": "shared",
+      "display_name": "Shared Components",
+      "description": "Common utilities and libraries",
+      "source_path": "src/shared",
+      "always_deploy": true
+    }
+  },
+  "github_settings": {
+    "organization": "your-org",
+    "repository": "nanba-selective-cicd",
+    "default_branch": "main",
+    "feature_branch_pattern": "feature/*",
+    "protected_branches": ["main"],
+    "required_secrets": [
+      "DATABRICKS_HOST_DEV",
+      "DATABRICKS_TOKEN_DEV",
+      "DATABRICKS_HOST_TEST",
+      "DATABRICKS_TOKEN_TEST",
+      "DATABRICKS_HOST_PROD",
+      "DATABRICKS_TOKEN_PROD"
+    ],
+    "optional_secrets": []
+  }
+}

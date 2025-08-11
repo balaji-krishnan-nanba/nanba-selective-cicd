@@ -1,0 +1,184 @@
+# Databricks
+.databricks/
+.bundle/
+*.dbc
+dbfs/
+.dbx/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.tox/
+.nox/
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+*.log
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Terraform (if using)
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Deployment artifacts
+deployment-reports/
+validation-reports/
+*.report.json
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Secrets (never commit these!)
+*.pem
+*.key
+*.cert
+secrets/
+credentials/
+tokens/
+
+# Local configuration
+local.config
+*.local.json
+config.local.json
+
+# Test outputs
+test-results/
+test-reports/
+htmlcov/
+
+# Documentation build
+docs/_build/
+site/
+
+# Package files
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Virtual environments
+bin/
+include/
+lib64
+pyvenv.cfg
+
+# Node (if using any Node tools)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Maven (if using)
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+
+# Gradle (if using)
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+
+# SBT (if using)
+dist/*
+target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+.scala_dependencies
+.worksheet
+
+# Spark
+spark-warehouse/
+metastore_db/
+derby.log
+
+# MLflow
+mlruns/
+mlflow.db
+
+# Custom
+*.local
+local-*
+*-local.*
+scratch/

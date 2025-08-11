@@ -1,0 +1,167 @@
+name: PR Validation and Deploy to DEV
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'src/**'
+      - 'databricks.yml'
+      - '.github/workflows/pr-validation.yml'
+
+jobs:
+  validate-and-deploy:
+    runs-on: ubuntu-latest
+    name: Validate PR and Deploy to DEV
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install Databricks CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+          echo "$HOME/.databricks/bin" >> $GITHUB_PATH
+      
+      - name: Configure Databricks CLI
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST_DEV }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_DEV }}
+        run: |
+          databricks configure --token <<EOF
+          $DATABRICKS_HOST
+          $DATABRICKS_TOKEN
+          EOF
+      
+      - name: Validate Bundle Configuration
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST_DEV }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_DEV }}
+        run: |
+          echo "Validating Databricks bundle configuration..."
+          databricks bundle validate -t dev
+      
+      - name: Deploy ALL Use Cases to DEV
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST_DEV }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_DEV }}
+        run: |
+          echo "================================================"
+          echo "Deploying ALL use cases + shared to DEV environment"
+          echo "This deployment is for PR validation purposes"
+          echo "================================================"
+          
+          # Deploy using bundle (includes all paths defined in dev target)
+          databricks bundle deploy -t dev --auto-approve
+          
+          echo "Bundle deployment completed"
+      
+      - name: Sync All Notebooks to Workspace
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST_DEV }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_DEV }}
+        run: |
+          echo "Syncing shared folder to DEV workspace..."
+          databricks workspace import-dir \
+            ./src/shared \
+            /Workspace/Deployments/dev/shared \
+            --overwrite
+          
+          echo "Syncing usecase-1 to DEV workspace..."
+          databricks workspace import-dir \
+            ./src/usecase-1 \
+            /Workspace/Deployments/dev/usecase-1 \
+            --overwrite
+          
+          echo "Syncing usecase-2 to DEV workspace..."
+          databricks workspace import-dir \
+            ./src/usecase-2 \
+            /Workspace/Deployments/dev/usecase-2 \
+            --overwrite
+          
+          echo "All notebooks synced successfully"
+      
+      - name: List Deployed Assets
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST_DEV }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_DEV }}
+        run: |
+          echo "Listing deployed notebooks in DEV workspace:"
+          echo "----------------------------------------"
+          echo "Shared folder contents:"
+          databricks workspace ls /Workspace/Deployments/dev/shared || true
+          echo ""
+          echo "UseCase-1 folder contents:"
+          databricks workspace ls /Workspace/Deployments/dev/usecase-1 || true
+          echo ""
+          echo "UseCase-2 folder contents:"
+          databricks workspace ls /Workspace/Deployments/dev/usecase-2 || true
+      
+      - name: Run Deployment Validation
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST_DEV }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_DEV }}
+        run: |
+          # Install dependencies for validation script
+          pip install requests
+          
+          # Run validation
+          python devops/scripts/validate_deployment.py \
+            --env dev \
+            --host "$DATABRICKS_HOST" \
+            --validate-all
+      
+      - name: Comment on PR
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const message = `### ✅ DEV Deployment Successful
+            
+            All use cases and shared notebooks have been deployed to the DEV environment for validation.
+            
+            **Deployed Assets:**
+            - ✓ Shared notebooks
+            - ✓ Use Case 1 notebooks
+            - ✓ Use Case 2 notebooks
+            
+            **Workspace Path:** \`/Workspace/Deployments/dev/\`
+            
+            Please review the changes in the DEV environment before merging.`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message
+            });
+      
+      - name: Comment on PR - Failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const message = `### ❌ DEV Deployment Failed
+            
+            The deployment to DEV environment has failed. Please check the workflow logs for details.
+            
+            Common issues:
+            - Invalid Databricks configuration
+            - Missing notebooks or incorrect paths
+            - Authentication issues
+            
+            Please fix the issues and push new changes to trigger another validation.`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message
+            });
