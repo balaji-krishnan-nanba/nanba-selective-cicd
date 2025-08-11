@@ -301,17 +301,16 @@ jobs:
           echo "Checking cluster configuration..."
           databricks clusters list | grep prod-cluster || echo "⚠️ prod-cluster not configured"
       
-      - name: Run Production Smoke Tests
+      - name: Run Production Validation Tests
         env:
           DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
-          # Run validation script
+          # Run validation script with full validation
           python devops/scripts/validate_deployment.py \
             --env prod \
             --host "$DATABRICKS_HOST" \
-            --use-case "${{ github.event.inputs.use_case }}" \
-            --smoke-test || echo "⚠️ Validation script not found or failed"
+            --use-case "${{ github.event.inputs.use_case }}" || echo "⚠️ Validation script not found or failed"
       
       - name: Deployment Summary
         run: |

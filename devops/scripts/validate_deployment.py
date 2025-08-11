@@ -327,26 +327,28 @@ def main():
     # Run validations
     all_passed = True
     
+    # Run smoke test if requested
     if args.smoke_test:
-        all_passed = validator.run_smoke_test()
-    else:
-        # Always validate shared folder
-        if not validator.validate_shared_folder():
+        if not validator.run_smoke_test():
             all_passed = False
-        
-        # Validate use cases
-        if args.validate_all or args.use_case == 'all':
-            if not validator.validate_use_case('usecase-1'):
-                all_passed = False
-            if not validator.validate_use_case('usecase-2'):
-                all_passed = False
-        elif args.use_case:
-            if not validator.validate_use_case(args.use_case):
-                all_passed = False
-        
-        # Validate cluster
-        cluster_name = f"{args.env}-cluster"
-        validator.validate_cluster(cluster_name)
+    
+    # Always validate shared folder (even with smoke test)
+    if not validator.validate_shared_folder():
+        all_passed = False
+    
+    # Validate use cases
+    if args.validate_all or args.use_case == 'all':
+        if not validator.validate_use_case('usecase-1'):
+            all_passed = False
+        if not validator.validate_use_case('usecase-2'):
+            all_passed = False
+    elif args.use_case:
+        if not validator.validate_use_case(args.use_case):
+            all_passed = False
+    
+    # Validate cluster
+    cluster_name = f"{args.env}-cluster"
+    validator.validate_cluster(cluster_name)
     
     # Generate report
     report = validator.generate_report()
