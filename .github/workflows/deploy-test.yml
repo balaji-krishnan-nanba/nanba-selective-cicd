@@ -221,7 +221,6 @@ jobs:
           echo "### Deployment Information" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment:** TEST" >> $GITHUB_STEP_SUMMARY
           echo "- **Use Case:** ${{ github.event.inputs.use_case }}" >> $GITHUB_STEP_SUMMARY
- >> $GITHUB_STEP_SUMMARY
           echo "- **Status:** ✅ Success" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Deployed Structure" >> $GITHUB_STEP_SUMMARY

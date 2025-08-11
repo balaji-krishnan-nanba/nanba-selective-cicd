@@ -361,7 +361,6 @@ jobs:
           echo "### Deployment Information" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment:** PRODUCTION" >> $GITHUB_STEP_SUMMARY
           echo "- **Use Case:** ${{ github.event.inputs.use_case }}" >> $GITHUB_STEP_SUMMARY
- >> $GITHUB_STEP_SUMMARY
           echo "- **Change Ticket:** ${{ github.event.inputs.change_ticket }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Status:** ✅ Success" >> $GITHUB_STEP_SUMMARY
           echo "- **Deployed by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
