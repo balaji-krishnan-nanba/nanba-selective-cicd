@@ -79,6 +79,7 @@ jobs:
         env:
           DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+          DATABRICKS_BUNDLE_ROOT: ""  # Disable bundle config for workspace commands
         run: |
           echo "Deploying selected use cases to TEST..."
           echo "Use Case: ${{ github.event.inputs.use_case }}"
@@ -100,13 +101,16 @@ jobs:
             cp -r src/${{ github.event.inputs.use_case }} "$TEMP_DIR/"
           fi
           
+          # Move to parent directory to avoid bundle config requiring target
+          cd ..
+          
           # Ensure deployment directories exist
           databricks workspace mkdirs /Workspace/Deployments/test/files/src || true
           
           # Upload shared folder
           echo "Uploading shared folder..."
           databricks workspace import-dir \
-            "$TEMP_DIR/shared" \
+            "${GITHUB_WORKSPACE}/$TEMP_DIR/shared" \
             "/Workspace/Deployments/test/files/src/shared" \
             --overwrite
           
@@ -114,30 +118,34 @@ jobs:
           if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
             echo "Uploading usecase-1..."
             databricks workspace import-dir \
-              "$TEMP_DIR/usecase-1" \
+              "${GITHUB_WORKSPACE}/$TEMP_DIR/usecase-1" \
               "/Workspace/Deployments/test/files/src/usecase-1" \
               --overwrite
             
             echo "Uploading usecase-2..."
             databricks workspace import-dir \
-              "$TEMP_DIR/usecase-2" \
+              "${GITHUB_WORKSPACE}/$TEMP_DIR/usecase-2" \
               "/Workspace/Deployments/test/files/src/usecase-2" \
               --overwrite
           elif [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
             echo "Uploading usecase-1..."
             databricks workspace import-dir \
-              "$TEMP_DIR/usecase-1" \
+              "${GITHUB_WORKSPACE}/$TEMP_DIR/usecase-1" \
               "/Workspace/Deployments/test/files/src/usecase-1" \
               --overwrite
           elif [ "${{ github.event.inputs.use_case }}" = "usecase-2" ]; then
             echo "Uploading usecase-2..."
             databricks workspace import-dir \
-              "$TEMP_DIR/usecase-2" \
+              "${GITHUB_WORKSPACE}/$TEMP_DIR/usecase-2" \
               "/Workspace/Deployments/test/files/src/usecase-2" \
               --overwrite
           fi
           
-          # Clean up temp directory
+          # Return to workspace directory
+          cd "${GITHUB_WORKSPACE}"
+          
+          # Clean up temp directory (ensure we're in the right directory)
+          cd "${GITHUB_WORKSPACE}"
           rm -rf "$TEMP_DIR"
           
           # Deploy cluster configuration
