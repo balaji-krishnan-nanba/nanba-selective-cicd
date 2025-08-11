@@ -95,8 +95,8 @@ jobs:
       
       - name: Configure Databricks CLI
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST_PROD }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_PROD }}
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
           databricks configure --token <<EOF
           $DATABRICKS_HOST
@@ -105,8 +105,8 @@ jobs:
       
       - name: Create deployment backup
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST_PROD }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_PROD }}
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
           echo "Creating backup of current PROD deployment..."
           
@@ -153,8 +153,8 @@ jobs:
       
       - name: Deploy Shared Folder to PROD
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST_PROD }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_PROD }}
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
           echo "Deploying shared folder to PRODUCTION..."
           
@@ -171,8 +171,8 @@ jobs:
       
       - name: Deploy Selected Use Case to PROD
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST_PROD }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_PROD }}
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
           echo "Deploying ${{ github.event.inputs.use_case }} to PRODUCTION..."
           
@@ -189,8 +189,8 @@ jobs:
       
       - name: Deploy Bundle Resources
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST_PROD }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_PROD }}
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
           echo "Deploying Databricks bundle resources to PROD..."
           
@@ -204,8 +204,8 @@ jobs:
       
       - name: Verify PROD Deployment
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST_PROD }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_PROD }}
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
           echo "Verifying PROD deployment..."
           echo "----------------------------------------"
@@ -224,8 +224,8 @@ jobs:
       
       - name: Run Production Smoke Tests
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST_PROD }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_PROD }}
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
           # Install dependencies
           pip install requests

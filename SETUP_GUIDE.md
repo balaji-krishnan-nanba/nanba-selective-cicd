@@ -1,73 +1,142 @@
-# GitHub Secrets Setup Guide
+# GitHub Environments and Secrets Setup Guide
 
-## Required GitHub Secrets
+## Overview
 
-You need to configure the following secrets in your GitHub repository settings.
+This pipeline uses GitHub Environments to manage secrets securely. Each environment (development, test, production) has its own set of secrets.
 
-### How to Add Secrets
+## Setup Methods
+
+### Method 1: Automated Setup (Recommended)
+
+Run the provided script to automatically create environments and set secrets:
+
+```bash
+# Make sure you have GitHub CLI installed
+gh auth login
+
+# Run the setup script
+./setup-github-environments.sh
+
+# Enter your Azure Databricks details when prompted
+```
+
+### Method 2: Manual Setup via GitHub UI
+
+#### Step 1: Create Environments
 
 1. Go to your repository: https://github.com/balaji-krishnan-nanba/nanba-selective-cicd
-2. Click on **Settings** tab
-3. Navigate to **Secrets and variables** → **Actions**
-4. Click **New repository secret** for each secret below
+2. Click on **Settings** → **Environments**
+3. Create three environments:
+   - `development`
+   - `test`
+   - `production`
 
-### Secrets to Configure
+#### Step 2: Configure Each Environment
 
-Add these 6 secrets with their corresponding values:
+For **each environment**, add these secrets:
 
-| Secret Name | Description | 
-|------------|-------------|
-| `DATABRICKS_HOST_DEV` | Azure Databricks DEV workspace URL |
-| `DATABRICKS_TOKEN_DEV` | Azure Databricks DEV access token |
-| `DATABRICKS_HOST_TEST` | Azure Databricks TEST workspace URL |
-| `DATABRICKS_TOKEN_TEST` | Azure Databricks TEST access token |
-| `DATABRICKS_HOST_PROD` | Azure Databricks PROD workspace URL |
-| `DATABRICKS_TOKEN_PROD` | Azure Databricks PROD access token |
+##### Development Environment
+1. Click on `development` environment
+2. Add secrets:
+   - `DATABRICKS_HOST`: Your DEV workspace URL
+   - `DATABRICKS_TOKEN`: Your DEV access token
 
-### Setting up Environments (Optional but Recommended)
+##### Test Environment
+1. Click on `test` environment
+2. Add secrets:
+   - `DATABRICKS_HOST`: Your TEST workspace URL
+   - `DATABRICKS_TOKEN`: Your TEST access token
 
-For better security, you can also set up GitHub Environments:
+##### Production Environment
+1. Click on `production` environment
+2. Add secrets:
+   - `DATABRICKS_HOST`: Your PROD workspace URL
+   - `DATABRICKS_TOKEN`: Your PROD access token
+3. Configure protection rules:
+   - Enable **Required reviewers**
+   - Add yourself or team members as reviewers
+   - Enable **Prevent self-review** if desired
+
+## Environment-Specific Configuration
+
+### Development
+- **Auto-deploys** on PR creation
+- No approval required
+- Used for validation before merge
+
+### Test
+- **Manual deployment** via GitHub Actions
+- No approval required
+- Used for integration testing
+
+### Production
+- **Manual deployment** via GitHub Actions
+- **Requires approval** from designated reviewers
+- Requires change ticket number
+- Creates backup before deployment
+
+## Benefits of Using Environments
+
+1. **Security**: Secrets are scoped to specific environments
+2. **Audit Trail**: All deployments are logged with who approved
+3. **Protection Rules**: Production requires approval
+4. **Visibility**: Clear view of what's deployed where
+5. **Compliance**: Better for SOC2/ISO requirements
+
+## Verify Setup
+
+After setting up environments:
 
 1. Go to **Settings** → **Environments**
-2. Create three environments: `development`, `test`, `production`
-3. For `production` environment:
-   - Enable **Required reviewers**
-   - Add protection rules as needed
-   - Add environment-specific secrets
+2. You should see all three environments
+3. Click each to verify secrets are configured
+4. For production, verify protection rules are enabled
 
-### Verify Setup
+## Testing the Pipeline
 
-After adding all secrets:
+1. **Create a Pull Request**
+   - Push changes to `feature/selective-cicd-setup`
+   - Create PR to `main`
+   - Should trigger automatic deployment to `development`
 
-1. Create a Pull Request from `feature/selective-cicd-setup` to `main`
-2. The PR should trigger the "PR Validation and Deploy to DEV" workflow
-3. Check the Actions tab to monitor the deployment
+2. **Test Deployment**
+   - After merge, go to **Actions** tab
+   - Run "Deploy to TEST" workflow manually
+   - Select use case and deploy
 
-### Next Steps
-
-1. **Create PR**: Create a pull request to trigger DEV deployment
-2. **Test Deployment**: After merge, manually trigger TEST deployment
-3. **Production**: Deploy to PROD with approval workflow
-
-## Important Security Notes
-
-- Never commit tokens or secrets directly in code
-- Rotate tokens periodically
-- Use least-privilege access for service principals
-- Consider using Azure Key Vault for production environments
+3. **Production Deployment**
+   - Go to **Actions** tab
+   - Run "Deploy to PROD" workflow
+   - Requires approval and change ticket
 
 ## Troubleshooting
 
-If workflows fail:
+### Common Issues
 
-1. Check that all 6 secrets are properly configured
-2. Verify token permissions in Azure Databricks
-3. Ensure workspace URLs are correct (without trailing slashes)
-4. Check Actions logs for detailed error messages
+1. **Workflow fails with "Environment not found"**
+   - Ensure environment names match exactly: `development`, `test`, `production`
+
+2. **Secrets not accessible**
+   - Verify secrets are set in the specific environment, not repository-level
+
+3. **Production deployment not requiring approval**
+   - Check protection rules are configured in production environment
+
+4. **Cannot create environments**
+   - Ensure you have admin access to the repository
+
+## Security Best Practices
+
+1. **Rotate tokens regularly** - Update tokens every 90 days
+2. **Use service principals** - Don't use personal access tokens
+3. **Limit token scope** - Use minimal required permissions
+4. **Monitor deployments** - Check Actions tab regularly
+5. **Review protection rules** - Ensure appropriate reviewers
 
 ## Support
 
-For issues with:
-- **Azure Databricks**: Check workspace access and token validity
-- **GitHub Actions**: Review workflow logs in the Actions tab
-- **Deployment**: Run `make validate` locally to test configuration
+For issues:
+- **GitHub Environments**: Check Settings → Environments
+- **Workflow logs**: Actions tab → Select failed workflow
+- **Secret issues**: Verify in environment settings
+- **Databricks access**: Test tokens using Databricks CLI locally

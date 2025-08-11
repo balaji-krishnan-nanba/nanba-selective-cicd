@@ -48,8 +48,8 @@ jobs:
       
       - name: Configure Databricks CLI
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST_TEST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_TEST }}
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
           databricks configure --token <<EOF
           $DATABRICKS_HOST
@@ -81,8 +81,8 @@ jobs:
       - name: Clean TEST workspace (if full deployment)
         if: github.event.inputs.deploy_type == 'full'
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST_TEST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_TEST }}
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
           echo "Performing full deployment - cleaning existing workspace..."
           
@@ -94,8 +94,8 @@ jobs:
       
       - name: Deploy Shared Folder
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST_TEST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_TEST }}
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
           echo "Deploying shared folder to TEST..."
           
@@ -112,8 +112,8 @@ jobs:
       
       - name: Deploy Selected Use Case(s)
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST_TEST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_TEST }}
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
           if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
             echo "Deploying all use cases to TEST..."
@@ -148,8 +148,8 @@ jobs:
       
       - name: Deploy Bundle Resources
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST_TEST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_TEST }}
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
           echo "Deploying Databricks bundle resources..."
           
@@ -163,8 +163,8 @@ jobs:
       
       - name: Verify Deployment
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST_TEST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_TEST }}
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
           echo "Verifying deployment..."
           echo "----------------------------------------"
@@ -191,8 +191,8 @@ jobs:
       
       - name: Run Validation Tests
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST_TEST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_TEST }}
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
           # Install dependencies
           pip install requests
