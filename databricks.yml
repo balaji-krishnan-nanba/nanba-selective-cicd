@@ -10,7 +10,6 @@ targets:
   dev:
     mode: development
     workspace:
-      host: ${DATABRICKS_HOST}
       root_path: /Workspace/Deployments/dev
     
     sync:
@@ -27,7 +26,6 @@ targets:
   test:
     mode: staging
     workspace:
-      host: ${DATABRICKS_HOST}
       root_path: /Workspace/Deployments/test
     
     sync:
@@ -43,7 +41,6 @@ targets:
   prod:
     mode: production
     workspace:
-      host: ${DATABRICKS_HOST}
       root_path: /Workspace/Deployments/prod
     
     sync:
