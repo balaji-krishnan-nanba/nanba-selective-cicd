@@ -1,142 +1,151 @@
-# GitHub Environments and Secrets Setup Guide
+# GitHub Environments Setup Guide
 
 ## Overview
 
-This pipeline uses GitHub Environments to manage secrets securely. Each environment (development, test, production) has its own set of secrets.
+This pipeline uses GitHub Environments to manage configuration and secrets securely. Each environment (development, test, production) has its own variables and secrets.
 
-## Setup Methods
+## Environment Configuration
 
-### Method 1: Automated Setup (Recommended)
+### Environments Created
 
-Run the provided script to automatically create environments and set secrets:
+The following environments are configured in the repository:
 
-```bash
-# Make sure you have GitHub CLI installed
-gh auth login
+| Environment | Purpose | Approval Required |
+|------------|---------|-------------------|
+| `development` | Auto-deploys on PR creation for validation | No |
+| `test` | Manual deployment for integration testing | No |
+| `production` | Manual deployment for production releases | Yes |
 
-# Run the setup script
-./setup-github-environments.sh
+### Environment Variables and Secrets
 
-# Enter your Azure Databricks details when prompted
-```
+Each environment has:
+- **Variable**: `DATABRICKS_HOST` - The Azure Databricks workspace URL
+- **Secret**: `DATABRICKS_TOKEN` - The access token for authentication
 
-### Method 2: Manual Setup via GitHub UI
+## How It Works
 
-#### Step 1: Create Environments
+### 1. Development Environment
+- **Trigger**: Automatically when PR is created to `main` branch
+- **Purpose**: Validate changes before merge
+- **Deployment**: All use cases + shared folder
 
-1. Go to your repository: https://github.com/balaji-krishnan-nanba/nanba-selective-cicd
-2. Click on **Settings** → **Environments**
-3. Create three environments:
-   - `development`
-   - `test`
-   - `production`
+### 2. Test Environment  
+- **Trigger**: Manual via GitHub Actions
+- **Purpose**: Integration testing
+- **Deployment**: Selected use case + shared folder (always)
 
-#### Step 2: Configure Each Environment
-
-For **each environment**, add these secrets:
-
-##### Development Environment
-1. Click on `development` environment
-2. Add secrets:
-   - `DATABRICKS_HOST`: Your DEV workspace URL
-   - `DATABRICKS_TOKEN`: Your DEV access token
-
-##### Test Environment
-1. Click on `test` environment
-2. Add secrets:
-   - `DATABRICKS_HOST`: Your TEST workspace URL
-   - `DATABRICKS_TOKEN`: Your TEST access token
-
-##### Production Environment
-1. Click on `production` environment
-2. Add secrets:
-   - `DATABRICKS_HOST`: Your PROD workspace URL
-   - `DATABRICKS_TOKEN`: Your PROD access token
-3. Configure protection rules:
-   - Enable **Required reviewers**
-   - Add yourself or team members as reviewers
-   - Enable **Prevent self-review** if desired
-
-## Environment-Specific Configuration
-
-### Development
-- **Auto-deploys** on PR creation
-- No approval required
-- Used for validation before merge
-
-### Test
-- **Manual deployment** via GitHub Actions
-- No approval required
-- Used for integration testing
-
-### Production
-- **Manual deployment** via GitHub Actions
-- **Requires approval** from designated reviewers
-- Requires change ticket number
-- Creates backup before deployment
-
-## Benefits of Using Environments
-
-1. **Security**: Secrets are scoped to specific environments
-2. **Audit Trail**: All deployments are logged with who approved
-3. **Protection Rules**: Production requires approval
-4. **Visibility**: Clear view of what's deployed where
-5. **Compliance**: Better for SOC2/ISO requirements
-
-## Verify Setup
-
-After setting up environments:
-
-1. Go to **Settings** → **Environments**
-2. You should see all three environments
-3. Click each to verify secrets are configured
-4. For production, verify protection rules are enabled
+### 3. Production Environment
+- **Trigger**: Manual via GitHub Actions with approval
+- **Purpose**: Production releases
+- **Requirements**: Change ticket, deployment reason
+- **Deployment**: Selected use case + shared folder (always)
 
 ## Testing the Pipeline
 
-1. **Create a Pull Request**
-   - Push changes to `feature/selective-cicd-setup`
-   - Create PR to `main`
-   - Should trigger automatic deployment to `development`
+### Step 1: Create a Pull Request
+```bash
+# From your feature branch
+git push origin feature/selective-cicd-setup
 
-2. **Test Deployment**
-   - After merge, go to **Actions** tab
-   - Run "Deploy to TEST" workflow manually
-   - Select use case and deploy
+# Create PR on GitHub
+# This will automatically trigger deployment to development environment
+```
 
-3. **Production Deployment**
-   - Go to **Actions** tab
-   - Run "Deploy to PROD" workflow
-   - Requires approval and change ticket
+### Step 2: Test Deployment (After Merge)
+1. Go to **Actions** tab in GitHub
+2. Select **Deploy to TEST** workflow
+3. Click **Run workflow**
+4. Select use case and deploy
+
+### Step 3: Production Deployment
+1. Go to **Actions** tab
+2. Select **Deploy to PROD** workflow  
+3. Click **Run workflow**
+4. Enter required information:
+   - Use case selection
+   - Change ticket number
+   - Deployment reason
+5. Wait for approval (if configured)
+6. Deployment proceeds after approval
+
+## Verify Your Setup
+
+### Check Environments
+1. Go to: https://github.com/balaji-krishnan-nanba/nanba-selective-cicd/settings/environments
+2. Verify all three environments exist
+3. Click each environment to verify:
+   - `DATABRICKS_HOST` is set as variable
+   - `DATABRICKS_TOKEN` is set as secret
+
+### Check Workflows
+1. Go to **Actions** tab
+2. You should see these workflows:
+   - PR Validation and Deploy to DEV
+   - Deploy to TEST
+   - Deploy to PROD
+   - Post-Merge Actions
+
+## Local Development
+
+For local testing and deployment:
+
+```bash
+# Set environment variables
+export DATABRICKS_HOST=<your-workspace-url>
+export DATABRICKS_TOKEN=<your-token>
+
+# Validate configuration
+make validate
+
+# Deploy to environment
+make deploy-dev   # Requires DEV credentials
+make deploy-test  # Interactive, requires TEST credentials  
+make deploy-prod  # Interactive with confirmation, requires PROD credentials
+```
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Workflow fails with "Environment not found"**
-   - Ensure environment names match exactly: `development`, `test`, `production`
+1. **Workflow fails with authentication error**
+   - Verify `DATABRICKS_TOKEN` secret is set correctly in the environment
+   - Check token hasn't expired
+   - Ensure token has necessary permissions
 
-2. **Secrets not accessible**
-   - Verify secrets are set in the specific environment, not repository-level
+2. **Environment not found error**
+   - Verify environment names match exactly: `development`, `test`, `production`
+   - Check workflows are using correct environment names
 
-3. **Production deployment not requiring approval**
-   - Check protection rules are configured in production environment
+3. **Cannot access variables/secrets**
+   - Ensure you're setting them at environment level, not repository level
+   - Variables are for non-sensitive data (URLs)
+   - Secrets are for sensitive data (tokens)
 
-4. **Cannot create environments**
-   - Ensure you have admin access to the repository
+4. **Production deployment not requiring approval**
+   - Check protection rules in production environment settings
+   - Add required reviewers if needed
 
 ## Security Best Practices
 
-1. **Rotate tokens regularly** - Update tokens every 90 days
-2. **Use service principals** - Don't use personal access tokens
-3. **Limit token scope** - Use minimal required permissions
-4. **Monitor deployments** - Check Actions tab regularly
-5. **Review protection rules** - Ensure appropriate reviewers
+1. **Token Management**
+   - Rotate tokens every 90 days
+   - Use service principals instead of personal tokens
+   - Grant minimal required permissions
+
+2. **Environment Protection**
+   - Production should always require approval
+   - Consider adding deployment branch restrictions
+   - Enable deployment history retention
+
+3. **Monitoring**
+   - Regularly check Actions tab for failed deployments
+   - Review deployment history in each environment
+   - Set up notifications for deployment failures
 
 ## Support
 
-For issues:
-- **GitHub Environments**: Check Settings → Environments
-- **Workflow logs**: Actions tab → Select failed workflow
-- **Secret issues**: Verify in environment settings
-- **Databricks access**: Test tokens using Databricks CLI locally
+For assistance:
+- **GitHub Actions logs**: Check Actions tab for detailed error messages
+- **Environment settings**: Settings → Environments
+- **Databricks connectivity**: Test with `databricks workspace ls /` locally
+- **Repository issues**: Create an issue in the repository

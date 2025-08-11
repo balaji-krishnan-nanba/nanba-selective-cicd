@@ -50,20 +50,19 @@ nanba-selective-cicd/
 
 ## Setup Instructions
 
-### 1. Configure GitHub Secrets
+### 1. GitHub Environments Configuration
 
-Add the following secrets to your GitHub repository:
+The repository uses GitHub Environments with the following setup:
 
-#### Required Secrets
-- `DATABRICKS_HOST_DEV`: DEV workspace URL
-- `DATABRICKS_TOKEN_DEV`: DEV access token
-- `DATABRICKS_HOST_TEST`: TEST workspace URL
-- `DATABRICKS_TOKEN_TEST`: TEST access token
-- `DATABRICKS_HOST_PROD`: PROD workspace URL
-- `DATABRICKS_TOKEN_PROD`: PROD access token
+| Environment | Variables | Secrets | Protection |
+|------------|-----------|---------|------------|
+| `development` | DATABRICKS_HOST | DATABRICKS_TOKEN | None |
+| `test` | DATABRICKS_HOST | DATABRICKS_TOKEN | None |
+| `production` | DATABRICKS_HOST | DATABRICKS_TOKEN | Approval Required |
 
-#### Optional Secrets
-None required at this time.
+Each environment is already configured with:
+- **DATABRICKS_HOST**: Set as environment variable (non-sensitive)
+- **DATABRICKS_TOKEN**: Set as environment secret (sensitive)
 
 ### 2. Workspace Structure
 
