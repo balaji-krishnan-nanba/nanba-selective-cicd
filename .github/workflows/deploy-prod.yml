@@ -126,15 +126,7 @@ jobs:
         run: |
           echo "Creating backup of current PROD deployment..."
           
-          BACKUP_DATE=$(date +'%Y%m%d-%H%M%S')
-          BACKUP_PATH="/Workspace/Deployments/prod-backups/${BACKUP_DATE}"
-          
-          # Create backup directory
-          databricks workspace mkdirs "${BACKUP_PATH}" -t prod
-          
-          # Export current deployment as backup (if exists) - bundle structure
-          echo "Backing up current deployment..."
-          # Determine the target for backup
+          # Determine the target for all workspace operations
           if [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
             TARGET="prod-uc1"
           elif [ "${{ github.event.inputs.use_case }}" = "usecase-2" ]; then
@@ -142,7 +134,16 @@ jobs:
           else
             TARGET="prod-all"
           fi
+          echo "Using target: $TARGET for backup operations"
           
+          BACKUP_DATE=$(date +'%Y%m%d-%H%M%S')
+          BACKUP_PATH="/Workspace/Deployments/prod-backups/${BACKUP_DATE}"
+          
+          # Create backup directory using the correct target
+          databricks workspace mkdirs "${BACKUP_PATH}" -t $TARGET
+          
+          # Export current deployment as backup (if exists) - bundle structure
+          echo "Backing up current deployment..."
           databricks workspace export-dir \
             /Workspace/Deployments/prod/files \
             "./backup-prod-${BACKUP_DATE}" \
