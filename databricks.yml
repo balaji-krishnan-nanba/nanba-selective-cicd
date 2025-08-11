@@ -8,9 +8,9 @@ variables:
 
 targets:
   dev:
-    mode: development
+    mode: staging
     workspace:
-      root_path: ~/Deployments/dev
+      root_path: /Workspace/Deployments/dev
     
     sync:
       paths:

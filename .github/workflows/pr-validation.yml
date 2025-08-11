@@ -53,21 +53,21 @@ jobs:
           databricks bundle deploy -t dev --auto-approve
           
           echo "Bundle deployment completed"
-          echo "Note: In development mode, deployed to user-specific workspace"
+          echo "Deployed to shared DEV workspace"
       
       - name: Verify Deployment
         env:
           DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
-          echo "Deployment completed to DEV workspace"
+          echo "Deployment completed to shared DEV workspace"
           echo "----------------------------------------"
-          echo "In development mode, notebooks are deployed to:"
-          echo "  ~/Deployments/dev/shared"
-          echo "  ~/Deployments/dev/usecase-1"
-          echo "  ~/Deployments/dev/usecase-2"
+          echo "Notebooks deployed to:"
+          echo "  /Workspace/Deployments/dev/shared"
+          echo "  /Workspace/Deployments/dev/usecase-1"
+          echo "  /Workspace/Deployments/dev/usecase-2"
           echo ""
-          echo "This resolves to the user's personal workspace in Databricks"
+          echo "This is the shared development environment"
       
       - name: Run Deployment Validation
         env:

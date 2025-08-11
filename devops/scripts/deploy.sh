@@ -62,17 +62,9 @@ validate_use_case() {
 # Function to deploy shared folder
 deploy_shared() {
     local env=$1
-    local workspace_path=""
+    local workspace_path="/Workspace/Deployments/${env}/shared"
     
-    # For dev environment, bundle handles user-specific paths
-    if [ "$env" = "dev" ]; then
-        # In dev mode, ~/Deployments/dev is automatically resolved to user workspace
-        workspace_path="~/Deployments/${env}/shared"
-        print_message $GREEN "\n📁 Deploying shared folder to user workspace (dev mode)..."
-    else
-        workspace_path="/Workspace/Deployments/${env}/shared"
-        print_message $GREEN "\n📁 Deploying shared folder to ${env}..."
-    fi
+    print_message $GREEN "\n📁 Deploying shared folder to ${env}..."
     
     # Create workspace directory
     databricks workspace mkdirs "$workspace_path" || true
@@ -98,17 +90,9 @@ deploy_shared() {
 deploy_use_case() {
     local env=$1
     local use_case=$2
-    local workspace_path=""
+    local workspace_path="/Workspace/Deployments/${env}/${use_case}"
     
-    # For dev environment, bundle handles user-specific paths
-    if [ "$env" = "dev" ]; then
-        # In dev mode, ~/Deployments/dev is automatically resolved to user workspace
-        workspace_path="~/Deployments/${env}/${use_case}"
-        print_message $GREEN "\n📁 Deploying ${use_case} to user workspace (dev mode)..."
-    else
-        workspace_path="/Workspace/Deployments/${env}/${use_case}"
-        print_message $GREEN "\n📁 Deploying ${use_case} to ${env}..."
-    fi
+    print_message $GREEN "\n📁 Deploying ${use_case} to ${env}..."
     
     # Create workspace directory
     databricks workspace mkdirs "$workspace_path" || true
@@ -145,16 +129,9 @@ deploy_all_use_cases() {
 verify_deployment() {
     local env=$1
     local use_case=$2
-    local workspace_root=""
+    local workspace_root="/Workspace/Deployments/${env}"
     
     print_message $YELLOW "\n🔍 Verifying deployment..."
-    
-    # For dev environment, use tilde path
-    if [ "$env" = "dev" ]; then
-        workspace_root="~/Deployments/${env}"
-    else
-        workspace_root="/Workspace/Deployments/${env}"
-    fi
     
     # Check shared folder
     print_message $YELLOW "Checking shared folder:"
@@ -223,12 +200,7 @@ main() {
     print_message $GREEN "✅ Deployment completed successfully!"
     print_message $GREEN "=========================================="
     
-    # Show correct workspace path based on environment
-    if [ "$env" = "dev" ]; then
-        print_message $YELLOW "Workspace root: ~/Deployments/${env}/ (user-specific in dev mode)"
-    else
-        print_message $YELLOW "Workspace root: /Workspace/Deployments/${env}/"
-    fi
+    print_message $YELLOW "Workspace root: /Workspace/Deployments/${env}/"
     
     print_message $YELLOW "Deployed components:"
     print_message $YELLOW "  - shared folder (always deployed)"
