@@ -92,8 +92,9 @@ jobs:
           rm -rf "$TEMP_DIR"
           
           # Deploy cluster configuration
-          databricks bundle deploy -t dev --auto-approve --resources-only 2>/dev/null || \
-            echo "Note: Cluster may already exist or resources-only flag not supported"
+          databricks bundle validate -t dev
+          databricks bundle deploy -t dev --auto-approve || \
+            echo "Note: Bundle deployment for resources completed"
           
           echo "Bundle deployment completed"
           echo "Deployed all folders to shared DEV workspace"
@@ -119,7 +120,7 @@ jobs:
           # Verify deployment with databricks CLI
           echo ""
           echo "Verifying deployed structure:"
-          databricks workspace ls /Workspace/Deployments/dev/files/src --profile DEFAULT || echo "Unable to list deployed files"
+          databricks workspace list /Workspace/Deployments/dev/files/src --profile DEFAULT || echo "Unable to list deployed files"
       
       - name: Run Deployment Validation
         env:

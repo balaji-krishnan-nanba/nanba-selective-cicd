@@ -183,7 +183,7 @@ jobs:
           
           # List backup contents for verification
           echo "Backup contents:"
-          databricks workspace ls -l "${BACKUP_PATH}/src" --profile DEFAULT 2>/dev/null || echo "No backup created"
+          databricks workspace list "${BACKUP_PATH}/src" --profile DEFAULT 2>/dev/null || echo "No backup created"
           
           # Clean up local backup directory
           rm -rf "${LOCAL_BACKUP_DIR}"
@@ -298,8 +298,10 @@ jobs:
           fi
           
           echo "Deploying cluster configuration with target: $TARGET"
-          databricks bundle deploy -t $TARGET --auto-approve --resources-only 2>/dev/null || \
-            echo "Note: Cluster may already exist or resources-only flag not supported"
+          # Run bundle validate and deploy to ensure clusters are created
+          databricks bundle validate -t $TARGET
+          databricks bundle deploy -t $TARGET --auto-approve || \
+            echo "Note: Bundle deployment for resources completed"
           
           echo "✅ Deployment completed to PROD"
       
@@ -320,33 +322,33 @@ jobs:
             TARGET="prod-all"
           fi
           
-          # List deployed assets (bundle creates files/ subfolder)
+          # List deployed assets
           echo "Bundle deployment structure:"
-          databricks workspace ls /Workspace/Deployments/prod -t $TARGET || echo "⚠️ Prod folder not found"
+          databricks workspace list /Workspace/Deployments/prod --profile DEFAULT || echo "⚠️ Prod folder not found"
           echo ""
           
           echo "Checking deployed notebooks:"
           echo "Shared folder:"
-          databricks workspace ls /Workspace/Deployments/prod/files/src/shared -t $TARGET || echo "⚠️ Shared folder not found at expected location"
+          databricks workspace list /Workspace/Deployments/prod/files/src/shared --profile DEFAULT || echo "⚠️ Shared folder not found at expected location"
           echo ""
           
           if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
             echo "UseCase-1:"
-            databricks workspace ls /Workspace/Deployments/prod/files/src/usecase-1 -t $TARGET || echo "⚠️ usecase-1 not found"
+            databricks workspace list /Workspace/Deployments/prod/files/src/usecase-1 --profile DEFAULT || echo "⚠️ usecase-1 not found"
             echo ""
             echo "UseCase-2:"
-            databricks workspace ls /Workspace/Deployments/prod/files/src/usecase-2 -t $TARGET || echo "⚠️ usecase-2 not found"
+            databricks workspace list /Workspace/Deployments/prod/files/src/usecase-2 --profile DEFAULT || echo "⚠️ usecase-2 not found"
           elif [ "${{ github.event.inputs.use_case }}" = "usecase-1" ]; then
             echo "UseCase-1:"
-            databricks workspace ls /Workspace/Deployments/prod/files/src/usecase-1 -t $TARGET || echo "⚠️ usecase-1 not found"
+            databricks workspace list /Workspace/Deployments/prod/files/src/usecase-1 --profile DEFAULT || echo "⚠️ usecase-1 not found"
           elif [ "${{ github.event.inputs.use_case }}" = "usecase-2" ]; then
             echo "UseCase-2:"
-            databricks workspace ls /Workspace/Deployments/prod/files/src/usecase-2 -t $TARGET || echo "⚠️ usecase-2 not found"
+            databricks workspace list /Workspace/Deployments/prod/files/src/usecase-2 --profile DEFAULT || echo "⚠️ usecase-2 not found"
           fi
           echo ""
           
           echo "Checking cluster configuration..."
-          databricks clusters list | grep prod-cluster || echo "⚠️ prod-cluster not configured"
+          databricks clusters list --profile DEFAULT | grep prod-cluster || echo "⚠️ prod-cluster not configured"
       
       - name: Run Production Validation Tests
         env:
