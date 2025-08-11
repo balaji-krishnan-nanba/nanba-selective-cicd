@@ -2,7 +2,7 @@
 
 ## Overview
 
-This pipeline uses GitHub Environments to manage configuration and secrets securely. Each environment (development, test, production) has its own variables and secrets.
+This pipeline uses GitHub Environments to manage configuration and secrets securely. Each environment (development, test, production) has its own variables and secrets
 
 ## Environment Configuration
 
