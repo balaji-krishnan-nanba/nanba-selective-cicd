@@ -31,7 +31,8 @@ targets:
     sync:
       paths:
         - ./src/shared
-        # Additional paths added dynamically based on use_case variable
+        - ./src/usecase-1
+        - ./src/usecase-2
       exclude:
         - "*.pyc"
         - "__pycache__"
@@ -46,7 +47,8 @@ targets:
     sync:
       paths:
         - ./src/shared
-        # Additional paths added dynamically based on use_case variable
+        - ./src/usecase-1
+        - ./src/usecase-2
       exclude:
         - "*.pyc"
         - "__pycache__"

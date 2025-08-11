@@ -32,8 +32,8 @@ class DeploymentValidator:
             'Authorization': f'Bearer {token}',
             'Content-Type': 'application/json'
         }
-        # All environments now use standard shared paths
-        self.base_path = f"/Workspace/Deployments/{env}"
+        # All environments now use standard shared paths with bundle structure
+        self.base_path = f"/Workspace/Deployments/{env}/files/src"
         self.validation_results = []
         
     def _make_request(self, endpoint: str, method: str = 'GET', data: Dict = None) -> Optional[Dict]:
@@ -250,10 +250,11 @@ class DeploymentValidator:
         """
         print("\n🔥 Running smoke tests...")
         
-        # Test workspace API connectivity
-        response = self._make_request('/workspace/get-status', 'POST', {'path': '/'})
+        # Test workspace API connectivity - check bundle root
+        bundle_root = f"/Workspace/Deployments/{self.env}"
+        response = self._make_request('/workspace/get-status', 'POST', {'path': bundle_root})
         if response:
-            print("  ✅ Workspace API connectivity verified")
+            print(f"  ✅ Workspace API connectivity verified - bundle root exists at {bundle_root}")
             return True
         else:
             print("  ❌ Workspace API connectivity failed")
@@ -317,7 +318,8 @@ def main():
     print(f"🔍 Databricks Deployment Validation")
     print(f"   Environment: {args.env}")
     print(f"   Workspace: {host}")
-    print(f"   Base Path: {validator.base_path}")
+    print(f"   Bundle Path: /Workspace/Deployments/{args.env}/files/src")
+    print(f"   Validation Path: {validator.base_path}")
     print("=" * 50)
     
     # Run validations
