@@ -32,8 +32,25 @@ class DeploymentValidator:
             'Authorization': f'Bearer {token}',
             'Content-Type': 'application/json'
         }
-        self.base_path = f"/Workspace/Deployments/{env}"
+        # For dev environment, we need to check user-specific path
+        if env == "dev":
+            # Get current user to determine workspace path
+            self.user_email = self._get_current_user()
+            if self.user_email:
+                self.base_path = f"/Workspace/Users/{self.user_email}/Deployments/{env}"
+            else:
+                # Fallback to standard path if can't get user
+                self.base_path = f"/Workspace/Deployments/{env}"
+        else:
+            self.base_path = f"/Workspace/Deployments/{env}"
         self.validation_results = []
+    
+    def _get_current_user(self) -> Optional[str]:
+        """Get current user email"""
+        response = self._make_request('/preview/scim/v2/Me', 'GET')
+        if response and 'userName' in response:
+            return response['userName']
+        return None
         
     def _make_request(self, endpoint: str, method: str = 'GET', data: Dict = None) -> Optional[Dict]:
         """
@@ -47,7 +64,10 @@ class DeploymentValidator:
         Returns:
             Response JSON or None if error
         """
-        url = f"{self.host}/api/2.0{endpoint}"
+        # Ensure endpoint starts with /api/2.0 if not already
+        if not endpoint.startswith('/api/2.0'):
+            endpoint = f"/api/2.0{endpoint}"
+        url = f"{self.host}{endpoint}"
         
         try:
             if method == 'GET':
