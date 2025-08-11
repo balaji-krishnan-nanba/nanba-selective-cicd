@@ -119,50 +119,27 @@ jobs:
             --host "$DATABRICKS_HOST" \
             --validate-all
       
-      - name: Comment on PR
-        if: success()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const message = `### ✅ DEV Deployment Successful
-            
-            All use cases and shared notebooks have been deployed to the DEV environment for validation.
-            
-            **Deployed Assets:**
-            - ✓ Shared notebooks
-            - ✓ Use Case 1 notebooks
-            - ✓ Use Case 2 notebooks
-            
-            **Workspace Path:** \`/Workspace/Deployments/dev/\`
-            
-            Please review the changes in the DEV environment before merging.`;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: message
-            });
-      
-      - name: Comment on PR - Failure
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const message = `### ❌ DEV Deployment Failed
-            
-            The deployment to DEV environment has failed. Please check the workflow logs for details.
-            
-            Common issues:
-            - Invalid Databricks configuration
-            - Missing notebooks or incorrect paths
-            - Authentication issues
-            
-            Please fix the issues and push new changes to trigger another validation.`;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: message
-            });
+      - name: Deployment Summary
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "## ✅ DEV Deployment Successful" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "All use cases and shared notebooks have been deployed to the DEV environment." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Deployed Assets:**" >> $GITHUB_STEP_SUMMARY
+            echo "- ✓ Shared notebooks" >> $GITHUB_STEP_SUMMARY
+            echo "- ✓ Use Case 1 notebooks" >> $GITHUB_STEP_SUMMARY
+            echo "- ✓ Use Case 2 notebooks" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Workspace Path:** /Workspace/Deployments/dev/" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ❌ DEV Deployment Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please check the workflow logs for details." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Common issues:**" >> $GITHUB_STEP_SUMMARY
+            echo "- Invalid Databricks configuration" >> $GITHUB_STEP_SUMMARY
+            echo "- Missing notebooks or incorrect paths" >> $GITHUB_STEP_SUMMARY
+            echo "- Authentication issues" >> $GITHUB_STEP_SUMMARY
+          fi

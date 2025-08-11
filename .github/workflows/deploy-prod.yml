@@ -237,59 +237,6 @@ jobs:
             --use-case "${{ github.event.inputs.use_case }}" \
             --smoke-test || echo "⚠️ Validation script not found or failed"
       
-      - name: Create Production Deployment Record
-        if: success()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const issue = await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `🚀 PROD Deployment - ${new Date().toISOString().split('T')[0]} - ${{ github.event.inputs.change_ticket }}`,
-              body: `## Production Deployment Record
-              
-              ### Deployment Details
-              - **Environment:** PRODUCTION
-              - **Use Case:** ${{ github.event.inputs.use_case }}
-              - **Change Ticket:** ${{ github.event.inputs.change_ticket }}
-              - **Deployed by:** ${{ github.actor }}
-              - **Deployment Time:** ${new Date().toISOString()}
-              - **Workflow Run:** [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-              
-              ### Deployment Reason
-              ${{ github.event.inputs.deployment_reason }}
-              
-              ### Rollback Plan
-              ${{ github.event.inputs.rollback_plan }}
-              
-              ### Deployed Components
-              - ✅ Shared folder
-              - ✅ ${{ github.event.inputs.use_case }}
-              
-              ### Workspace Paths
-              - **/Workspace/Deployments/prod/shared**
-              - **/Workspace/Deployments/prod/${{ github.event.inputs.use_case }}**
-              
-              ### Backup Location
-              ${{ env.backup_path }}
-              
-              ### Post-Deployment Actions
-              - [ ] Monitor application performance
-              - [ ] Check error logs
-              - [ ] Validate business functionality
-              - [ ] Update documentation if needed
-              - [ ] Close change ticket
-              
-              ### Rollback Instructions
-              If rollback is needed:
-              1. Use the backup at: ${{ env.backup_path }}
-              2. Or revert to previous Git tag
-              3. Re-run deployment with previous version`,
-              labels: ['deployment', 'production', 'change-${{ github.event.inputs.change_ticket }}']
-            });
-            
-            console.log(`Created production deployment record: #${issue.data.number}`);
-      
       - name: Deployment Summary
         run: |
           echo "## 🚀 PRODUCTION Deployment Completed" >> $GITHUB_STEP_SUMMARY
@@ -316,32 +263,19 @@ jobs:
       
       - name: Handle Deployment Failure
         if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const issue = await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `❌ PROD Deployment Failed - ${{ github.event.inputs.change_ticket }}`,
-              body: `## Production Deployment Failed
-              
-              ### Failure Details
-              - **Change Ticket:** ${{ github.event.inputs.change_ticket }}
-              - **Use Case:** ${{ github.event.inputs.use_case }}
-              - **Failed at:** ${new Date().toISOString()}
-              - **Triggered by:** ${{ github.actor }}
-              
-              ### Rollback Instructions
-              ${{ github.event.inputs.rollback_plan }}
-              
-              ### Action Required
-              1. Check the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-              2. Identify the failure cause
-              3. Execute rollback if needed
-              4. Update the change ticket
-              
-              @${{ github.actor }} - Please investigate immediately.`,
-              labels: ['deployment', 'production', 'failed', 'urgent']
-            });
-            
-            console.log(`Created failure record: #${issue.data.number}`);
+        run: |
+          echo "## ❌ PROD Deployment Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Failure Details" >> $GITHUB_STEP_SUMMARY
+          echo "- **Change Ticket:** ${{ github.event.inputs.change_ticket }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Use Case:** ${{ github.event.inputs.use_case }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Rollback Instructions" >> $GITHUB_STEP_SUMMARY
+          echo "${{ github.event.inputs.rollback_plan }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Action Required" >> $GITHUB_STEP_SUMMARY
+          echo "1. Check the workflow logs" >> $GITHUB_STEP_SUMMARY
+          echo "2. Identify the failure cause" >> $GITHUB_STEP_SUMMARY
+          echo "3. Execute rollback if needed" >> $GITHUB_STEP_SUMMARY
+          echo "4. Update the change ticket" >> $GITHUB_STEP_SUMMARY

@@ -87,46 +87,7 @@ jobs:
           echo "uc1_changed=${UC1_CHANGED}" >> $GITHUB_OUTPUT
           echo "uc2_changed=${UC2_CHANGED}" >> $GITHUB_OUTPUT
       
-      - name: Create deployment issue
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const issue = await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `🚀 Ready for TEST Deployment - ${{ steps.version.outputs.new_tag }}`,
-              body: `## Deployment Summary
-              
-              A new version has been merged to main and is ready for TEST deployment.
-              
-              ### Version Information
-              - **Tag:** ${{ steps.version.outputs.new_tag }}
-              - **Commit:** ${{ steps.commit.outputs.sha_short }}
-              - **Author:** ${{ steps.commit.outputs.author }}
-              - **Message:** ${{ steps.commit.outputs.message }}
-              - **Date:** ${{ steps.commit.outputs.date }}
-              
-              ### Changes Detected
-              - **Shared Folder:** ${{ steps.summary.outputs.shared_changed == 'true' && '✅ Changed' || '⭕ No changes' }}
-              - **Use Case 1:** ${{ steps.summary.outputs.uc1_changed == 'true' && '✅ Changed' || '⭕ No changes' }}
-              - **Use Case 2:** ${{ steps.summary.outputs.uc2_changed == 'true' && '✅ Changed' || '⭕ No changes' }}
-              
-              ### Next Steps
-              1. Review the changes in the [commit](${{ github.event.head_commit.url }})
-              2. Deploy to TEST environment using the [Deploy to TEST workflow](../../actions/workflows/deploy-test.yml)
-              3. Select the appropriate use case(s) to deploy
-              4. After successful TEST validation, deploy to PROD
-              
-              ### Deployment Commands
-              To deploy to TEST, go to Actions → Deploy to TEST → Run workflow
-              
-              Remember: The shared folder will always be deployed along with your selected use case.`,
-              labels: ['deployment', 'test-ready']
-            });
-            
-            console.log(`Created issue #${issue.data.number}`);
-      
-      - name: Summary
+      - name: Deployment Summary
         run: |
           echo "## 🎉 Release Tagged Successfully" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
