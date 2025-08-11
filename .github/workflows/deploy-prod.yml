@@ -10,6 +10,15 @@ on:
         options:
           - usecase-1
           - usecase-2
+          - all
+      deploy_type:
+        description: 'Deployment type'
+        required: true
+        type: choice
+        default: 'incremental'
+        options:
+          - incremental
+          - full
       change_ticket:
         description: 'Change ticket number (required)'
         required: true
@@ -113,11 +122,24 @@ jobs:
             "./backup-shared-${BACKUP_DATE}" \
             --overwrite -t prod || echo "No existing shared folder to backup"
           
-          echo "Backing up ${{ github.event.inputs.use_case }}..."
-          databricks workspace export-dir \
-            /Workspace/Deployments/prod/${{ github.event.inputs.use_case }} \
-            "./backup-${{ github.event.inputs.use_case }}-${BACKUP_DATE}" \
-            --overwrite -t prod || echo "No existing use case folder to backup"
+          if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
+            echo "Backing up all use cases..."
+            databricks workspace export-dir \
+              /Workspace/Deployments/prod/usecase-1 \
+              "./backup-usecase-1-${BACKUP_DATE}" \
+              --overwrite -t prod || echo "No existing usecase-1 folder to backup"
+            
+            databricks workspace export-dir \
+              /Workspace/Deployments/prod/usecase-2 \
+              "./backup-usecase-2-${BACKUP_DATE}" \
+              --overwrite -t prod || echo "No existing usecase-2 folder to backup"
+          else
+            echo "Backing up ${{ github.event.inputs.use_case }}..."
+            databricks workspace export-dir \
+              /Workspace/Deployments/prod/${{ github.event.inputs.use_case }} \
+              "./backup-${{ github.event.inputs.use_case }}-${BACKUP_DATE}" \
+              --overwrite -t prod || echo "No existing use case folder to backup"
+          fi
           
           echo "Backup completed: ${BACKUP_PATH}"
           echo "backup_path=${BACKUP_PATH}" >> $GITHUB_ENV
@@ -129,6 +151,7 @@ jobs:
           echo "================================================"
           echo "Environment: PRODUCTION"
           echo "Use Case: ${{ github.event.inputs.use_case }}"
+          echo "Deployment Type: ${{ github.event.inputs.deploy_type }}"
           echo "Change Ticket: ${{ github.event.inputs.change_ticket }}"
           echo "Triggered by: ${{ github.actor }}"
           echo "Reason: ${{ github.event.inputs.deployment_reason }}"
@@ -136,10 +159,31 @@ jobs:
           echo ""
           echo "Folders to deploy:"
           echo "  ✓ src/shared (always deployed)"
-          echo "  ✓ src/${{ github.event.inputs.use_case }}"
+          
+          if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
+            echo "  ✓ src/usecase-1"
+            echo "  ✓ src/usecase-2"
+          else
+            echo "  ✓ src/${{ github.event.inputs.use_case }}"
+          fi
+          
           echo ""
           echo "Backup created at: ${{ env.backup_path }}"
           echo "================================================"
+      
+      - name: Clean PROD workspace (if full deployment)
+        if: github.event.inputs.deploy_type == 'full'
+        env:
+          DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          echo "Performing full deployment - cleaning existing workspace..."
+          
+          # Clean the workspace directory
+          databricks workspace delete /Workspace/Deployments/prod --recursive -t prod || true
+          
+          # Recreate directory structure
+          databricks workspace mkdirs /Workspace/Deployments/prod -t prod
       
       - name: Deploy Shared Folder to PROD
         env:
@@ -159,23 +203,41 @@ jobs:
           
           echo "✅ Shared folder deployed to PROD successfully"
       
-      - name: Deploy Selected Use Case to PROD
+      - name: Deploy Selected Use Case(s) to PROD
         env:
           DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
-          echo "Deploying ${{ github.event.inputs.use_case }} to PRODUCTION..."
-          
-          # Create directory if it doesn't exist
-          databricks workspace mkdirs /Workspace/Deployments/prod/${{ github.event.inputs.use_case }} -t prod || true
-          
-          # Import use case notebooks
-          databricks workspace import-dir \
-            ./src/${{ github.event.inputs.use_case }} \
-            /Workspace/Deployments/prod/${{ github.event.inputs.use_case }} \
-            --overwrite -t prod
-          
-          echo "✅ ${{ github.event.inputs.use_case }} deployed to PROD successfully"
+          if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
+            echo "Deploying all use cases to PRODUCTION..."
+            
+            # Deploy usecase-1
+            echo "Deploying usecase-1..."
+            databricks workspace mkdirs /Workspace/Deployments/prod/usecase-1 -t prod || true
+            databricks workspace import-dir \
+              ./src/usecase-1 \
+              /Workspace/Deployments/prod/usecase-1 \
+              --overwrite -t prod
+            echo "✅ usecase-1 deployed"
+            
+            # Deploy usecase-2
+            echo "Deploying usecase-2..."
+            databricks workspace mkdirs /Workspace/Deployments/prod/usecase-2 -t prod || true
+            databricks workspace import-dir \
+              ./src/usecase-2 \
+              /Workspace/Deployments/prod/usecase-2 \
+              --overwrite -t prod
+            echo "✅ usecase-2 deployed"
+            
+          else
+            echo "Deploying ${{ github.event.inputs.use_case }} to PRODUCTION..."
+            databricks workspace mkdirs /Workspace/Deployments/prod/${{ github.event.inputs.use_case }} -t prod || true
+            databricks workspace import-dir \
+              ./src/${{ github.event.inputs.use_case }} \
+              /Workspace/Deployments/prod/${{ github.event.inputs.use_case }} \
+              --overwrite -t prod
+            echo "✅ ${{ github.event.inputs.use_case }} deployed to PROD successfully"
+          fi
       
       - name: Deploy Bundle Resources
         env:
@@ -202,11 +264,19 @@ jobs:
           
           # List deployed assets
           echo "Shared folder contents:"
-          databricks workspace ls /Workspace/Deployments/prod/shared -t prod
+          databricks workspace ls /Workspace/Deployments/prod/shared -t prod || echo "⚠️ Shared folder not found"
           echo ""
           
-          echo "${{ github.event.inputs.use_case }} folder contents:"
-          databricks workspace ls /Workspace/Deployments/prod/${{ github.event.inputs.use_case }} -t prod
+          if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
+            echo "UseCase-1 folder contents:"
+            databricks workspace ls /Workspace/Deployments/prod/usecase-1 -t prod || echo "⚠️ usecase-1 not found"
+            echo ""
+            echo "UseCase-2 folder contents:"
+            databricks workspace ls /Workspace/Deployments/prod/usecase-2 -t prod || echo "⚠️ usecase-2 not found"
+          else
+            echo "${{ github.event.inputs.use_case }} folder contents:"
+            databricks workspace ls /Workspace/Deployments/prod/${{ github.event.inputs.use_case }} -t prod || echo "⚠️ ${{ github.event.inputs.use_case }} not found"
+          fi
           echo ""
           
           echo "Checking cluster configuration..."
@@ -234,13 +304,20 @@ jobs:
           echo "### Deployment Information" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment:** PRODUCTION" >> $GITHUB_STEP_SUMMARY
           echo "- **Use Case:** ${{ github.event.inputs.use_case }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Type:** ${{ github.event.inputs.deploy_type }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Change Ticket:** ${{ github.event.inputs.change_ticket }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Status:** ✅ Success" >> $GITHUB_STEP_SUMMARY
           echo "- **Deployed by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Deployed Folders" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ `/Workspace/Deployments/prod/shared`" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ `/Workspace/Deployments/prod/${{ github.event.inputs.use_case }}`" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
+            echo "- ✅ `/Workspace/Deployments/prod/usecase-1`" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ `/Workspace/Deployments/prod/usecase-2`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ✅ `/Workspace/Deployments/prod/${{ github.event.inputs.use_case }}`" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Backup Location" >> $GITHUB_STEP_SUMMARY
           echo "${{ env.backup_path }}" >> $GITHUB_STEP_SUMMARY
