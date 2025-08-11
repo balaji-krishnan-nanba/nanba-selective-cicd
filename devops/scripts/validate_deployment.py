@@ -80,8 +80,9 @@ class DeploymentValidator:
         Returns:
             True if path exists, False otherwise
         """
-        data = {'path': path}
-        response = self._make_request('/workspace/get-status', 'POST', data)
+        # Use GET with path as query parameter
+        endpoint = f'/workspace/get-status?path={path}'
+        response = self._make_request(endpoint, 'GET')
         
         if response and 'path' in response:
             return True
@@ -219,7 +220,7 @@ class DeploymentValidator:
         """
         print(f"\n⚙️  Validating cluster: {cluster_name}...")
         
-        response = self._make_request('/clusters/list')
+        response = self._make_request('/clusters/list', 'GET')
         
         if response and 'clusters' in response:
             for cluster in response['clusters']:
@@ -252,7 +253,8 @@ class DeploymentValidator:
         
         # Test workspace API connectivity - check bundle root
         bundle_root = f"/Workspace/Deployments/{self.env}"
-        response = self._make_request('/workspace/get-status', 'POST', {'path': bundle_root})
+        endpoint = f'/workspace/get-status?path={bundle_root}'
+        response = self._make_request(endpoint, 'GET')
         if response:
             print(f"  ✅ Workspace API connectivity verified - bundle root exists at {bundle_root}")
             return True
