@@ -6,48 +6,6 @@ variables:
     description: Which use case to deploy
     default: all
 
-# Define resources that will be customized per target
-resources:
-  jobs:
-    # Job for usecase-1
-    usecase_1_job:
-      name: "UseCase-1 Processing Job"
-      tasks:
-        - task_key: process_data
-          notebook_task:
-            notebook_path: "${workspace.root_path}/files/src/usecase-1/This is usecase-1 Notebook"
-            source: WORKSPACE
-          # Cluster will be set in each target
-      queue:
-        enabled: true
-      max_concurrent_runs: 1
-      
-    # Job for usecase-2  
-    usecase_2_job:
-      name: "UseCase-2 Processing Job"
-      tasks:
-        - task_key: process_data
-          notebook_task:
-            notebook_path: "${workspace.root_path}/files/src/usecase-2/This is usecase-2 Notebook"
-            source: WORKSPACE
-          # Cluster will be set in each target
-      queue:
-        enabled: true
-      max_concurrent_runs: 1
-      
-    # Shared/common job
-    shared_processing_job:
-      name: "Shared Data Processing"
-      tasks:
-        - task_key: shared_task
-          notebook_task:
-            notebook_path: "${workspace.root_path}/files/src/shared/shared_notebook"
-            source: WORKSPACE
-          # Cluster will be set in each target
-      queue:
-        enabled: true
-      max_concurrent_runs: 1
-
 targets:
   # Development target - deploys everything for PR validation
   dev:
@@ -69,31 +27,6 @@ targets:
           custom_tags:
             Environment: "Development"
             Project: "nanba-selective-cicd"
-      
-      jobs:
-        usecase_1_job:
-          tasks:
-            - task_key: process_data
-              existing_cluster_id: ${resources.clusters.dev-cluster.cluster_id}
-              notebook_task:
-                notebook_path: "${workspace.root_path}/files/src/usecase-1/This is usecase-1 Notebook"
-                source: WORKSPACE
-        
-        usecase_2_job:
-          tasks:
-            - task_key: process_data
-              existing_cluster_id: ${resources.clusters.dev-cluster.cluster_id}
-              notebook_task:
-                notebook_path: "${workspace.root_path}/files/src/usecase-2/This is usecase-2 Notebook"
-                source: WORKSPACE
-        
-        shared_processing_job:
-          tasks:
-            - task_key: shared_task
-              existing_cluster_id: ${resources.clusters.dev-cluster.cluster_id}
-              notebook_task:
-                notebook_path: "${workspace.root_path}/files/src/shared/shared_notebook"
-                source: WORKSPACE
     
     sync:
       paths:
@@ -124,23 +57,6 @@ targets:
           custom_tags:
             Environment: "Testing"
             Project: "nanba-selective-cicd"
-      
-      jobs:
-        usecase_1_job:
-          tasks:
-            - task_key: process_data
-              existing_cluster_id: ${resources.clusters.test-cluster.cluster_id}
-              notebook_task:
-                notebook_path: "${workspace.root_path}/files/src/usecase-1/This is usecase-1 Notebook"
-                source: WORKSPACE
-        
-        shared_processing_job:
-          tasks:
-            - task_key: shared_task
-              existing_cluster_id: ${resources.clusters.test-cluster.cluster_id}
-              notebook_task:
-                notebook_path: "${workspace.root_path}/files/src/shared/shared_notebook"
-                source: WORKSPACE
     
     sync:
       paths:
@@ -171,23 +87,6 @@ targets:
           custom_tags:
             Environment: "Testing"
             Project: "nanba-selective-cicd"
-      
-      jobs:
-        usecase_2_job:
-          tasks:
-            - task_key: process_data
-              existing_cluster_id: ${resources.clusters.test-cluster.cluster_id}
-              notebook_task:
-                notebook_path: "${workspace.root_path}/files/src/usecase-2/This is usecase-2 Notebook"
-                source: WORKSPACE
-        
-        shared_processing_job:
-          tasks:
-            - task_key: shared_task
-              existing_cluster_id: ${resources.clusters.test-cluster.cluster_id}
-              notebook_task:
-                notebook_path: "${workspace.root_path}/files/src/shared/shared_notebook"
-                source: WORKSPACE
     
     sync:
       paths:
@@ -218,8 +117,6 @@ targets:
           custom_tags:
             Environment: "Testing"
             Project: "nanba-selective-cicd"
-      
-      jobs:
         usecase_1_job:
           tasks:
             - task_key: process_data
@@ -228,21 +125,6 @@ targets:
                 notebook_path: "${workspace.root_path}/files/src/usecase-1/This is usecase-1 Notebook"
                 source: WORKSPACE
         
-        usecase_2_job:
-          tasks:
-            - task_key: process_data
-              existing_cluster_id: ${resources.clusters.test-cluster.cluster_id}
-              notebook_task:
-                notebook_path: "${workspace.root_path}/files/src/usecase-2/This is usecase-2 Notebook"
-                source: WORKSPACE
-        
-        shared_processing_job:
-          tasks:
-            - task_key: shared_task
-              existing_cluster_id: ${resources.clusters.test-cluster.cluster_id}
-              notebook_task:
-                notebook_path: "${workspace.root_path}/files/src/shared/shared_notebook"
-                source: WORKSPACE
     
     sync:
       paths:
@@ -275,23 +157,6 @@ targets:
           custom_tags:
             Environment: "Production"
             Project: "nanba-selective-cicd"
-      
-      jobs:
-        usecase_1_job:
-          tasks:
-            - task_key: process_data
-              existing_cluster_id: ${resources.clusters.prod-cluster.cluster_id}
-              notebook_task:
-                notebook_path: "${workspace.root_path}/files/src/usecase-1/This is usecase-1 Notebook"
-                source: WORKSPACE
-        
-        shared_processing_job:
-          tasks:
-            - task_key: shared_task
-              existing_cluster_id: ${resources.clusters.prod-cluster.cluster_id}
-              notebook_task:
-                notebook_path: "${workspace.root_path}/files/src/shared/shared_notebook"
-                source: WORKSPACE
     
     sync:
       paths:
@@ -326,23 +191,6 @@ targets:
           custom_tags:
             Environment: "Production"
             Project: "nanba-selective-cicd"
-      
-      jobs:
-        usecase_2_job:
-          tasks:
-            - task_key: process_data
-              existing_cluster_id: ${resources.clusters.prod-cluster.cluster_id}
-              notebook_task:
-                notebook_path: "${workspace.root_path}/files/src/usecase-2/This is usecase-2 Notebook"
-                source: WORKSPACE
-        
-        shared_processing_job:
-          tasks:
-            - task_key: shared_task
-              existing_cluster_id: ${resources.clusters.prod-cluster.cluster_id}
-              notebook_task:
-                notebook_path: "${workspace.root_path}/files/src/shared/shared_notebook"
-                source: WORKSPACE
     
     sync:
       paths:
@@ -377,8 +225,6 @@ targets:
           custom_tags:
             Environment: "Production"
             Project: "nanba-selective-cicd"
-      
-      jobs:
         usecase_1_job:
           tasks:
             - task_key: process_data
@@ -387,21 +233,6 @@ targets:
                 notebook_path: "${workspace.root_path}/files/src/usecase-1/This is usecase-1 Notebook"
                 source: WORKSPACE
         
-        usecase_2_job:
-          tasks:
-            - task_key: process_data
-              existing_cluster_id: ${resources.clusters.prod-cluster.cluster_id}
-              notebook_task:
-                notebook_path: "${workspace.root_path}/files/src/usecase-2/This is usecase-2 Notebook"
-                source: WORKSPACE
-        
-        shared_processing_job:
-          tasks:
-            - task_key: shared_task
-              existing_cluster_id: ${resources.clusters.prod-cluster.cluster_id}
-              notebook_task:
-                notebook_path: "${workspace.root_path}/files/src/shared/shared_notebook"
-                source: WORKSPACE
     
     sync:
       paths:
