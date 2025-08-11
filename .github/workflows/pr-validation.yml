@@ -83,7 +83,7 @@ jobs:
             --host "$DATABRICKS_HOST" \
             --validate-all || {
             echo "Validation had issues but deployment succeeded"
-            echo "This is expected in development mode with user-specific paths"
+            echo "Check the validation logs for details"
           }
       
       - name: Deployment Summary
