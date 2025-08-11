@@ -136,24 +136,47 @@ jobs:
           
           BACKUP_DATE=$(date +'%Y%m%d-%H%M%S')
           BACKUP_PATH="/Workspace/Deployments/prod-backups/${BACKUP_DATE}"
+          LOCAL_BACKUP_DIR="./prod-backup-${BACKUP_DATE}"
           
-          # Create backup directory using the correct target
-          databricks workspace mkdirs "${BACKUP_PATH}" -t $TARGET || true
+          # Create local backup directory
+          mkdir -p "${LOCAL_BACKUP_DIR}"
           
-          # Export current deployment as backup (if exists) - bundle structure
-          echo "Backing up current deployment..."
-          # Check if source exists before backing up
-          if databricks workspace ls /Workspace/Deployments/prod/files -t $TARGET 2>/dev/null; then
+          # Check if source exists and create backup
+          echo "Checking for existing deployment to backup..."
+          if databricks workspace ls /Workspace/Deployments/prod/files/src -t $TARGET 2>/dev/null; then
+            echo "Found existing deployment, creating backup..."
+            
+            # Export the entire src directory to local filesystem
             databricks workspace export-dir \
-              /Workspace/Deployments/prod/files \
-              "${BACKUP_PATH}" \
+              /Workspace/Deployments/prod/files/src \
+              "${LOCAL_BACKUP_DIR}/src" \
               --overwrite -t $TARGET
+            
+            # Create backup directory in workspace
+            databricks workspace mkdirs "${BACKUP_PATH}" -t $TARGET
+            
+            # Import the backup to workspace backup location
+            databricks workspace import-dir \
+              "${LOCAL_BACKUP_DIR}/src" \
+              "${BACKUP_PATH}/src" \
+              --overwrite -t $TARGET
+            
             echo "✅ Backup created at workspace path: ${BACKUP_PATH}"
+            
+            # List backup contents for verification
+            echo "Backup contents:"
+            databricks workspace ls "${BACKUP_PATH}" -t $TARGET || echo "Unable to list backup"
           else
             echo "⚠️ No existing deployment found to backup"
+            # Still create the backup directory for record keeping
+            databricks workspace mkdirs "${BACKUP_PATH}" -t $TARGET
+            echo "Empty backup directory created at: ${BACKUP_PATH}"
           fi
           
-          echo "Backup completed: ${BACKUP_PATH}"
+          # Clean up local backup directory
+          rm -rf "${LOCAL_BACKUP_DIR}"
+          
+          echo "Backup process completed: ${BACKUP_PATH}"
           echo "backup_path=${BACKUP_PATH}" >> $GITHUB_ENV
       
       - name: Display Deployment Plan
