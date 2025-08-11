@@ -66,9 +66,9 @@ deploy_shared() {
     
     # For dev environment, use user-specific path
     if [ "$env" = "dev" ]; then
-        USER_PATH=$(databricks me | grep -oP '(?<="userName": ")[^"]*')
-        workspace_path="/Workspace/Users/${USER_PATH}/Deployments/${env}/shared"
-        print_message $GREEN "\n📁 Deploying shared folder to user workspace: ${USER_PATH}..."
+        USER_EMAIL=$(databricks current-user me | grep -oP '(?<="userName": ")[^"]*')
+        workspace_path="/Workspace/Users/${USER_EMAIL}/Deployments/${env}/shared"
+        print_message $GREEN "\n📁 Deploying shared folder to user workspace: ${USER_EMAIL}..."
     else
         workspace_path="/Workspace/Deployments/${env}/shared"
         print_message $GREEN "\n📁 Deploying shared folder to ${env}..."
@@ -102,9 +102,9 @@ deploy_use_case() {
     
     # For dev environment, use user-specific path
     if [ "$env" = "dev" ]; then
-        USER_PATH=$(databricks me | grep -oP '(?<="userName": ")[^"]*')
-        workspace_path="/Workspace/Users/${USER_PATH}/Deployments/${env}/${use_case}"
-        print_message $GREEN "\n📁 Deploying ${use_case} to user workspace: ${USER_PATH}..."
+        USER_EMAIL=$(databricks current-user me | grep -oP '(?<="userName": ")[^"]*')
+        workspace_path="/Workspace/Users/${USER_EMAIL}/Deployments/${env}/${use_case}"
+        print_message $GREEN "\n📁 Deploying ${use_case} to user workspace: ${USER_EMAIL}..."
     else
         workspace_path="/Workspace/Deployments/${env}/${use_case}"
         print_message $GREEN "\n📁 Deploying ${use_case} to ${env}..."
@@ -151,8 +151,8 @@ verify_deployment() {
     
     # For dev environment, use user-specific path
     if [ "$env" = "dev" ]; then
-        USER_PATH=$(databricks me | grep -oP '(?<="userName": ")[^"]*')
-        workspace_root="/Workspace/Users/${USER_PATH}/Deployments/${env}"
+        USER_EMAIL=$(databricks current-user me | grep -oP '(?<="userName": ")[^"]*')
+        workspace_root="/Workspace/Users/${USER_EMAIL}/Deployments/${env}"
     else
         workspace_root="/Workspace/Deployments/${env}"
     fi
@@ -226,8 +226,8 @@ main() {
     
     # Show correct workspace path based on environment
     if [ "$env" = "dev" ]; then
-        USER_PATH=$(databricks me | grep -oP '(?<="userName": ")[^"]*')
-        print_message $YELLOW "Workspace root: /Workspace/Users/${USER_PATH}/Deployments/${env}/"
+        USER_EMAIL=$(databricks current-user me | grep -oP '(?<="userName": ")[^"]*')
+        print_message $YELLOW "Workspace root: /Workspace/Users/${USER_EMAIL}/Deployments/${env}/"
     else
         print_message $YELLOW "Workspace root: /Workspace/Deployments/${env}/"
     fi

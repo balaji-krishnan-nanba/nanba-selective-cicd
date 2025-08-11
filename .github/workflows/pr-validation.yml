@@ -59,9 +59,9 @@ jobs:
           DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
-          # Get current user workspace path
-          USER_PATH=$(databricks me | grep -oP '(?<="userName": ")[^"]*')
-          WORKSPACE_ROOT="/Workspace/Users/${USER_PATH}/Deployments/dev"
+          # Get current user email
+          USER_EMAIL=$(databricks current-user me | grep -oP '(?<="userName": ")[^"]*')
+          WORKSPACE_ROOT="/Workspace/Users/${USER_EMAIL}/Deployments/dev"
           echo "Deploying to user workspace: $WORKSPACE_ROOT"
           
           echo "Syncing shared folder to DEV workspace..."
@@ -89,9 +89,9 @@ jobs:
           DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
-          # Get current user workspace path
-          USER_PATH=$(databricks me | grep -oP '(?<="userName": ")[^"]*')
-          WORKSPACE_ROOT="/Workspace/Users/${USER_PATH}/Deployments/dev"
+          # Get current user email
+          USER_EMAIL=$(databricks current-user me | grep -oP '(?<="userName": ")[^"]*')
+          WORKSPACE_ROOT="/Workspace/Users/${USER_EMAIL}/Deployments/dev"
           
           echo "Listing deployed notebooks in DEV workspace:"
           echo "Workspace root: $WORKSPACE_ROOT"
