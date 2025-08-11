@@ -103,58 +103,14 @@ jobs:
       
       - name: Install Databricks CLI
         run: |
-          # Try to install Databricks CLI with multiple methods
           echo "Installing Databricks CLI..."
           
-          # Method 1: Try the official installer (may fail due to GitHub outages)
-          if curl -fsSL --connect-timeout 10 --max-time 30 https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh 2>/dev/null | sh 2>/dev/null; then
-            echo "✅ Databricks CLI installed via official installer"
-          else
-            echo "⚠️ Official installer unavailable, using direct download..."
-            
-            # Method 2: Direct download of specific version using curl
-            DATABRICKS_CLI_VERSION="0.224.1"
-            ARCH=$(uname -m)
-            OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-            
-            if [ "$ARCH" = "x86_64" ]; then
-              ARCH="amd64"
-            elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
-              ARCH="arm64"
-            fi
-            
-            # Build the download URL
-            DOWNLOAD_URL="https://github.com/databricks/cli/releases/download/v${DATABRICKS_CLI_VERSION}/databricks_cli_${DATABRICKS_CLI_VERSION}_${OS}_${ARCH}.tar.gz"
-            echo "Downloading from: $DOWNLOAD_URL"
-            
-            # Download using curl with retries
-            if ! curl -L --fail --silent --show-error --retry 3 --retry-delay 5 \
-                 -o /tmp/databricks-cli.tar.gz "$DOWNLOAD_URL"; then
-              echo "❌ Failed to download Databricks CLI"
-              echo "Attempting to use Python pip installation as last resort..."
-              
-              # Method 3: Install via pip (older version but stable)
-              pip install databricks-cli
-              
-              # Create wrapper script to use pip-installed version
-              mkdir -p $HOME/.databricks/bin
-              echo '#!/bin/bash' > $HOME/.databricks/bin/databricks
-              echo 'databricks "$@"' >> $HOME/.databricks/bin/databricks
-              chmod +x $HOME/.databricks/bin/databricks
-            else
-              # Extract and install the downloaded CLI
-              mkdir -p $HOME/.databricks/bin
-              tar -xzf /tmp/databricks-cli.tar.gz -C $HOME/.databricks/bin
-              chmod +x $HOME/.databricks/bin/databricks
-              echo "✅ Databricks CLI installed from direct download"
-            fi
-          fi
+          # Try the official installer
+          curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
           
-          # Add to PATH
-          echo "$HOME/.databricks/bin" >> $GITHUB_PATH
-          
+          # The installer puts the CLI in /usr/local/bin/databricks
           # Verify installation
-          if $HOME/.databricks/bin/databricks --version; then
+          if databricks --version; then
             echo "✅ Databricks CLI installation verified"
           else
             echo "❌ Databricks CLI installation failed"
