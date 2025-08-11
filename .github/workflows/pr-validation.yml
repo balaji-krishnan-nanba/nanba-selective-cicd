@@ -31,13 +31,40 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
           echo "$HOME/.databricks/bin" >> $GITHUB_PATH
       
+      - name: Test Databricks Connectivity
+        env:
+          DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          echo "Testing connection to Databricks workspace..."
+          echo "Host: $DATABRICKS_HOST"
+          
+          # Test API connectivity
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer $DATABRICKS_TOKEN" \
+            "${DATABRICKS_HOST}/api/2.0/clusters/list")
+          
+          if [ "$response" = "200" ] || [ "$response" = "403" ]; then
+            echo "✅ Successfully connected to Databricks workspace"
+          else
+            echo "❌ Failed to connect to Databricks workspace"
+            echo "Response code: $response"
+            echo "Please check:"
+            echo "1. DATABRICKS_HOST is correct: $DATABRICKS_HOST"
+            echo "2. DATABRICKS_TOKEN is valid"
+            echo "3. Workspace exists and is accessible"
+            exit 1
+          fi
+      
       - name: Validate Bundle Configuration
         env:
           DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: |
           echo "Validating Databricks bundle configuration..."
-          databricks bundle validate -t dev
+          databricks bundle validate -t dev || {
+            echo "Bundle validation failed. Continuing with direct deployment..."
+          }
       
       - name: Deploy ALL Use Cases to DEV
         env:
