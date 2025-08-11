@@ -104,20 +104,20 @@ jobs:
           BACKUP_PATH="/Workspace/Deployments/prod-backups/${BACKUP_DATE}"
           
           # Create backup directory
-          databricks workspace mkdirs "${BACKUP_PATH}"
+          databricks workspace mkdirs "${BACKUP_PATH}" -t prod
           
           # Export current deployment as backup (if exists)
           echo "Backing up shared folder..."
           databricks workspace export-dir \
             /Workspace/Deployments/prod/shared \
             "./backup-shared-${BACKUP_DATE}" \
-            --overwrite || echo "No existing shared folder to backup"
+            --overwrite -t prod || echo "No existing shared folder to backup"
           
           echo "Backing up ${{ github.event.inputs.use_case }}..."
           databricks workspace export-dir \
             /Workspace/Deployments/prod/${{ github.event.inputs.use_case }} \
             "./backup-${{ github.event.inputs.use_case }}-${BACKUP_DATE}" \
-            --overwrite || echo "No existing use case folder to backup"
+            --overwrite -t prod || echo "No existing use case folder to backup"
           
           echo "Backup completed: ${BACKUP_PATH}"
           echo "backup_path=${BACKUP_PATH}" >> $GITHUB_ENV
@@ -149,13 +149,13 @@ jobs:
           echo "Deploying shared folder to PRODUCTION..."
           
           # Create directory if it doesn't exist
-          databricks workspace mkdirs /Workspace/Deployments/prod/shared || true
+          databricks workspace mkdirs /Workspace/Deployments/prod/shared -t prod || true
           
           # Import shared notebooks
           databricks workspace import-dir \
             ./src/shared \
             /Workspace/Deployments/prod/shared \
-            --overwrite
+            --overwrite -t prod
           
           echo "✅ Shared folder deployed to PROD successfully"
       
@@ -167,13 +167,13 @@ jobs:
           echo "Deploying ${{ github.event.inputs.use_case }} to PRODUCTION..."
           
           # Create directory if it doesn't exist
-          databricks workspace mkdirs /Workspace/Deployments/prod/${{ github.event.inputs.use_case }} || true
+          databricks workspace mkdirs /Workspace/Deployments/prod/${{ github.event.inputs.use_case }} -t prod || true
           
           # Import use case notebooks
           databricks workspace import-dir \
             ./src/${{ github.event.inputs.use_case }} \
             /Workspace/Deployments/prod/${{ github.event.inputs.use_case }} \
-            --overwrite
+            --overwrite -t prod
           
           echo "✅ ${{ github.event.inputs.use_case }} deployed to PROD successfully"
       
@@ -202,11 +202,11 @@ jobs:
           
           # List deployed assets
           echo "Shared folder contents:"
-          databricks workspace ls /Workspace/Deployments/prod/shared
+          databricks workspace ls /Workspace/Deployments/prod/shared -t prod
           echo ""
           
           echo "${{ github.event.inputs.use_case }} folder contents:"
-          databricks workspace ls /Workspace/Deployments/prod/${{ github.event.inputs.use_case }}
+          databricks workspace ls /Workspace/Deployments/prod/${{ github.event.inputs.use_case }} -t prod
           echo ""
           
           echo "Checking cluster configuration..."
