@@ -77,10 +77,10 @@ jobs:
           echo "Performing full deployment - cleaning existing workspace..."
           
           # Clean the workspace directory
-          databricks workspace delete /Workspace/Deployments/test --recursive || true
+          databricks workspace delete /Workspace/Deployments/test --recursive -t test || true
           
           # Recreate directory structure
-          databricks workspace mkdirs /Workspace/Deployments/test
+          databricks workspace mkdirs /Workspace/Deployments/test -t test
       
       - name: Deploy Shared Folder
         env:
@@ -90,13 +90,13 @@ jobs:
           echo "Deploying shared folder to TEST..."
           
           # Create directory if it doesn't exist
-          databricks workspace mkdirs /Workspace/Deployments/test/shared || true
+          databricks workspace mkdirs /Workspace/Deployments/test/shared -t test || true
           
           # Import shared notebooks
           databricks workspace import-dir \
             ./src/shared \
             /Workspace/Deployments/test/shared \
-            --overwrite
+            --overwrite -t test
           
           echo "✅ Shared folder deployed successfully"
       
@@ -110,29 +110,29 @@ jobs:
             
             # Deploy usecase-1
             echo "Deploying usecase-1..."
-            databricks workspace mkdirs /Workspace/Deployments/test/usecase-1 || true
+            databricks workspace mkdirs /Workspace/Deployments/test/usecase-1 -t test || true
             databricks workspace import-dir \
               ./src/usecase-1 \
               /Workspace/Deployments/test/usecase-1 \
-              --overwrite
+              --overwrite -t test
             echo "✅ usecase-1 deployed"
             
             # Deploy usecase-2
             echo "Deploying usecase-2..."
-            databricks workspace mkdirs /Workspace/Deployments/test/usecase-2 || true
+            databricks workspace mkdirs /Workspace/Deployments/test/usecase-2 -t test || true
             databricks workspace import-dir \
               ./src/usecase-2 \
               /Workspace/Deployments/test/usecase-2 \
-              --overwrite
+              --overwrite -t test
             echo "✅ usecase-2 deployed"
             
           else
             echo "Deploying ${{ github.event.inputs.use_case }} to TEST..."
-            databricks workspace mkdirs /Workspace/Deployments/test/${{ github.event.inputs.use_case }} || true
+            databricks workspace mkdirs /Workspace/Deployments/test/${{ github.event.inputs.use_case }} -t test || true
             databricks workspace import-dir \
               ./src/${{ github.event.inputs.use_case }} \
               /Workspace/Deployments/test/${{ github.event.inputs.use_case }} \
-              --overwrite
+              --overwrite -t test
             echo "✅ ${{ github.event.inputs.use_case }} deployed"
           fi
       
@@ -161,18 +161,18 @@ jobs:
           
           # List deployed assets
           echo "Shared folder contents:"
-          databricks workspace ls /Workspace/Deployments/test/shared || echo "⚠️ Shared folder not found"
+          databricks workspace ls /Workspace/Deployments/test/shared -t test || echo "⚠️ Shared folder not found"
           echo ""
           
           if [ "${{ github.event.inputs.use_case }}" = "all" ]; then
             echo "UseCase-1 folder contents:"
-            databricks workspace ls /Workspace/Deployments/test/usecase-1 || echo "⚠️ usecase-1 not found"
+            databricks workspace ls /Workspace/Deployments/test/usecase-1 -t test || echo "⚠️ usecase-1 not found"
             echo ""
             echo "UseCase-2 folder contents:"
-            databricks workspace ls /Workspace/Deployments/test/usecase-2 || echo "⚠️ usecase-2 not found"
+            databricks workspace ls /Workspace/Deployments/test/usecase-2 -t test || echo "⚠️ usecase-2 not found"
           else
             echo "${{ github.event.inputs.use_case }} folder contents:"
-            databricks workspace ls /Workspace/Deployments/test/${{ github.event.inputs.use_case }} || echo "⚠️ ${{ github.event.inputs.use_case }} not found"
+            databricks workspace ls /Workspace/Deployments/test/${{ github.event.inputs.use_case }} -t test || echo "⚠️ ${{ github.event.inputs.use_case }} not found"
           fi
           
           echo ""
