@@ -117,14 +117,6 @@ targets:
           custom_tags:
             Environment: "Testing"
             Project: "nanba-selective-cicd"
-        usecase_1_job:
-          tasks:
-            - task_key: process_data
-              existing_cluster_id: ${resources.clusters.test-cluster.cluster_id}
-              notebook_task:
-                notebook_path: "${workspace.root_path}/files/src/usecase-1/This is usecase-1 Notebook"
-                source: WORKSPACE
-        
     
     sync:
       paths:
@@ -225,14 +217,6 @@ targets:
           custom_tags:
             Environment: "Production"
             Project: "nanba-selective-cicd"
-        usecase_1_job:
-          tasks:
-            - task_key: process_data
-              existing_cluster_id: ${resources.clusters.prod-cluster.cluster_id}
-              notebook_task:
-                notebook_path: "${workspace.root_path}/files/src/usecase-1/This is usecase-1 Notebook"
-                source: WORKSPACE
-        
     
     sync:
       paths:
